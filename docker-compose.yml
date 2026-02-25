@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pneumonia-db
+    environment:
+      POSTGRES_DB: pneumonia_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pneumonia-backend
+    depends_on:
+      - db
+    environment:
+      # Override Spring datasource config to use Docker network host "db"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/pneumonia_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+
+      # Optional: keep same context-path as in application.yaml
+      SERVER_SERVLET_CONTEXT_PATH: /api/v1
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
