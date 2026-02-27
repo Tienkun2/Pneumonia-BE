@@ -9,7 +9,7 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "user_role", schema = "identity")
+@Table(name = "user_role")
 public class UserRole {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
