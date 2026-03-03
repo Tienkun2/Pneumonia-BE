@@ -12,41 +12,62 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.medical.pneumonia.dto.request.ApiResponse;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
-import com.medical.pneumonia.dto.response.UserCreationResponse;
-import com.medical.pneumonia.entity.Users;
+import com.medical.pneumonia.dto.request.UserUpdateRequest;
+import com.medical.pneumonia.dto.response.UserResponse;
 import com.medical.pneumonia.service.UserService;
 
+import jakarta.validation.Valid;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/users")
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
-    private final UserService userService;
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }   
-    
-    @GetMapping("/list")
-    public ResponseEntity<List<Users>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
+
+    UserService userService;
 
     @PostMapping()
-    public ResponseEntity<UserCreationResponse> createUser(@RequestBody UserCreationRequest userCreationRequest) {
-        return ResponseEntity.ok(userService.createUser(userCreationRequest));
+    ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest userCreationRequest) {
+        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("User created successfully");
+        apiResponse.setResult(userService.createUser(userCreationRequest));
+        return apiResponse;
+    }
+
+    @GetMapping()
+    ApiResponse<List<UserResponse>> getAllUsers() {
+        ApiResponse<List<UserResponse>> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("User list successfully");
+        apiResponse.setResult(userService.getAllUsers());
+        return apiResponse;
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserCreationResponse> getUserById(@PathVariable String id) {
-        return ResponseEntity.ok(userService.getUserById(id));
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<UserCreationResponse> updateUser(@PathVariable String id, @RequestBody UserCreationRequest userCreationRequest) {
-        return ResponseEntity.ok(userService.updateUser(id, userCreationRequest));
+    ApiResponse<UserResponse> getUserById(@PathVariable String id) {
+        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("User found successfully");
+        apiResponse.setResult(userService.getUserById(id));
+        return apiResponse;
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<UserCreationResponse> deleteUser(@PathVariable String id) {
-        return ResponseEntity.ok(userService.deleteUser(id));
-    }       
+    ApiResponse<String> deleteUser(@PathVariable String id) {
+        userService.deleteUser(id);
+        ApiResponse<String> apiResponse = new ApiResponse<>();
+        apiResponse.setResult("User deleted successfully");
+        return apiResponse;
+    }
+
+    @PutMapping("/{id}")
+    ApiResponse<UserResponse> updateUser(@PathVariable String id, @RequestBody UserUpdateRequest request) {
+        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setMessage("User updated successfully");
+        apiResponse.setResult(userService.updateUser(id, request));
+        return apiResponse;
+    }
 }

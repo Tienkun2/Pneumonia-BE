@@ -1,6 +1,5 @@
 package com.medical.pneumonia.dto.request;
 
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,9 +12,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreationRequest {
-    @Size(min = 6, message = "USERNAME_INVALID")
+public class UserUpdateRequest {
     String username;
-    @Size(min = 6, message = "PASSWORD_INVALID")
     String password;
 }

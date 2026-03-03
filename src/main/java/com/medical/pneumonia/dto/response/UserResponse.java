@@ -1,16 +1,18 @@
 package com.medical.pneumonia.dto.response;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponse<T> {
-    private int code;
-    private String message;
-    private T result;
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserResponse {
+    String username;
+    String password;
 }
