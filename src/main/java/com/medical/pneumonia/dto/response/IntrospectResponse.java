@@ -1,7 +1,5 @@
 package com.medical.pneumonia.dto.response;
 
-import java.util.Set;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,8 +11,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
-    String username;
-    Set<String> roles;
+@FieldDefaults(level = AccessLevel.PRIVATE) 
+public class IntrospectResponse {
+    boolean valid;
 }

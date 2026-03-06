@@ -10,11 +10,13 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
-    String username;
-    Set<String> roles;
+public class RoleResponse {
+    String name;
+    String description;
+
+    Set<PermissionResponse> permissions;
 }

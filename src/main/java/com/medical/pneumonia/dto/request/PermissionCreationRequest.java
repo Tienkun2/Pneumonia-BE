@@ -1,6 +1,4 @@
-package com.medical.pneumonia.dto.response;
-
-import java.util.Set;
+package com.medical.pneumonia.dto.request;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -10,11 +8,11 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
-    String username;
-    Set<String> roles;
+public class PermissionCreationRequest {
+    String name;
+    String description;
 }

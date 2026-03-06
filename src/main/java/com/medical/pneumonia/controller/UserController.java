@@ -2,7 +2,7 @@ package com.medical.pneumonia.controller;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,41 +33,49 @@ public class UserController {
 
     @PostMapping()
     ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest userCreationRequest) {
-        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
-        apiResponse.setMessage("User created successfully");
-        apiResponse.setResult(userService.createUser(userCreationRequest));
-        return apiResponse;
+        return ApiResponse.<UserResponse>builder()
+        .message("User created successfully")
+        .result(userService.createUser(userCreationRequest))
+        .build();
     }
 
     @GetMapping()
     ApiResponse<List<UserResponse>> getAllUsers() {
-        ApiResponse<List<UserResponse>> apiResponse = new ApiResponse<>();
-        apiResponse.setMessage("User list successfully");
-        apiResponse.setResult(userService.getAllUsers());
-        return apiResponse;
+        return ApiResponse.<List<UserResponse>>builder()
+        .message("User list successfully")
+        .result(userService.getAllUsers())
+        .build();
     }
 
     @GetMapping("/{id}")
     ApiResponse<UserResponse> getUserById(@PathVariable String id) {
-        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
-        apiResponse.setMessage("User found successfully");
-        apiResponse.setResult(userService.getUserById(id));
-        return apiResponse;
+        return ApiResponse.<UserResponse>builder()
+        .message("User found successfully")
+        .result(userService.getUserById(id))
+        .build();
     }
 
     @DeleteMapping("/{id}")
-    ApiResponse<String> deleteUser(@PathVariable String id) {
+    ApiResponse<Void> deleteUser(@PathVariable String id) {
         userService.deleteUser(id);
-        ApiResponse<String> apiResponse = new ApiResponse<>();
-        apiResponse.setResult("User deleted successfully");
-        return apiResponse;
+        return ApiResponse.<Void>builder()
+        .message("User deleted successfully")
+        .build();
     }
 
     @PutMapping("/{id}")
     ApiResponse<UserResponse> updateUser(@PathVariable String id, @RequestBody UserUpdateRequest request) {
-        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
-        apiResponse.setMessage("User updated successfully");
-        apiResponse.setResult(userService.updateUser(id, request));
-        return apiResponse;
+        return ApiResponse.<UserResponse>builder()
+        .message("User updated successfully")
+        .result(userService.updateUser(id, request))
+        .build();
+    }
+
+    @GetMapping("/my-info")
+    ApiResponse<UserResponse> getMyInfo(){
+        return ApiResponse.<UserResponse>builder()
+        .message("User info successfully")
+        .result(userService.getMyInfo())
+        .build();
     }
 }

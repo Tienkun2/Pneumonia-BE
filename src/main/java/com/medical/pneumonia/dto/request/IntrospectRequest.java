@@ -1,6 +1,4 @@
-package com.medical.pneumonia.dto.response;
-
-import java.util.Set;
+package com.medical.pneumonia.dto.request;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,9 +10,8 @@ import lombok.experimental.FieldDefaults;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
-    String username;
-    Set<String> roles;
+@Builder    
+@FieldDefaults(level = AccessLevel.PRIVATE) 
+public class IntrospectRequest {
+    String token;
 }

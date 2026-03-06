@@ -3,7 +3,6 @@ package com.medical.pneumonia.mapper;
 import java.util.List;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import com.medical.pneumonia.dto.request.UserCreationRequest;
