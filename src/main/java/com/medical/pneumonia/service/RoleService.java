@@ -4,8 +4,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-
-import com.medical.pneumonia.dto.request.ApiResponse;
 import com.medical.pneumonia.dto.request.RoleCreationRequest;
 import com.medical.pneumonia.dto.request.RoleUpdateRequest;
 import com.medical.pneumonia.dto.response.RoleResponse;

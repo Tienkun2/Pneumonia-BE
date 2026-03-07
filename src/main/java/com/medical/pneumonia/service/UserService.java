@@ -6,10 +6,10 @@ import java.util.Set;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.medical.pneumonia.repository.RoleRepository;
 import com.medical.pneumonia.repository.UserRepository;
 
 import lombok.AccessLevel;
@@ -19,8 +19,8 @@ import lombok.experimental.FieldDefaults;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
 import com.medical.pneumonia.dto.request.UserUpdateRequest;
 import com.medical.pneumonia.dto.response.UserResponse;
+import com.medical.pneumonia.entity.Role;
 import com.medical.pneumonia.entity.User;
-import com.medical.pneumonia.enums.Role;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.UserMapper;
@@ -33,7 +33,7 @@ public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
-
+    RoleRepository roleRepository;
 
     private User getUserEntity(String id){
         return userRepository.findById(id)
@@ -41,6 +41,7 @@ public class UserService {
     }
 
     public UserResponse createUser(UserCreationRequest request) {
+
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -49,14 +50,19 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        Set<String> roles = new HashSet<>();
-        roles.add(Role.USER.name());
+
+        Set<Role> roles = new HashSet<>(roleRepository.findAllById(request.getRoles()));
+
+        if(roles.size() != request.getRoles().size()){
+            throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+        }
+
         user.setRoles(roles);
 
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
             .map(userMapper::toUserResponse)
@@ -79,6 +85,9 @@ public class UserService {
         userMapper.updateUser(user, request);
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        var roles = roleRepository.findAllById(request.getRoles());
+        user.setRoles(new HashSet<>(roles));
 
         return userMapper.toUserResponse(userRepository.save(user));
     }

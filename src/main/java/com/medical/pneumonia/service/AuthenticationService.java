@@ -1,6 +1,5 @@
 package com.medical.pneumonia.service;
 
-import java.text.ParseException;
 import java.util.Date;
 import java.util.StringJoiner;
 
@@ -33,10 +32,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class AuthenticationService {
     UserRepository userRepository;
 
@@ -110,10 +111,15 @@ public class AuthenticationService {
     private String buildScope(User user){
         StringJoiner stringJoiner = new StringJoiner(" ");
         if(!CollectionUtils.isEmpty(user.getRoles())){
-            // for(String role : user.getRoles(){
-            //     stringJoiner.add(role);
-            // }
-            user.getRoles().forEach(stringJoiner::add);
+            user.getRoles().forEach(
+                role -> {
+                    stringJoiner.add("ROLE_" + role.getName());
+                    if(!CollectionUtils.isEmpty(role.getPermissions()))
+                    role.getPermissions().forEach(
+                        permissions -> stringJoiner.add(permissions.getName())
+                    );
+                }
+            );
         }
         return stringJoiner.toString();
     }

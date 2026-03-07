@@ -1,16 +1,14 @@
 package com.medical.pneumonia.entity;
 
-import java.util.HashSet;
+import java.time.LocalDate;
 import java.util.Set;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -36,8 +34,8 @@ public class User {
     @Column(nullable = false)
     String password;
 
-    @ElementCollection
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
-    Set<String> roles;
+    LocalDate dob;
+
+    @ManyToMany
+    Set<Role> roles;
 }

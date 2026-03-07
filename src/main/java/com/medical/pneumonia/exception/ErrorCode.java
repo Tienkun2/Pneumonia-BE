@@ -19,8 +19,9 @@ public enum ErrorCode {
     USER_EXISTED(4001, "User already exists", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND(4002, "User not found", HttpStatus.NOT_FOUND),
     USER_NOT_EXISTED(4003, "User not existed", HttpStatus.NOT_FOUND),
-    USERNAME_INVALID(4004, "Username must be at least 6 characters long", HttpStatus.BAD_REQUEST),
-    PASSWORD_INVALID(4005, "Password must be at least 6 characters long", HttpStatus.BAD_REQUEST),
+    USERNAME_INVALID(4004, "Username must be at least {min} characters long", HttpStatus.BAD_REQUEST),
+    PASSWORD_INVALID(4005, "Password must be at least {min} characters long", HttpStatus.BAD_REQUEST),
+    DOB_INVALID(4006, "You must be at least {min} years old", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatus httpStatusCode){
