@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.medical.pneumonia.dto.request.ApiResponse;
 import com.medical.pneumonia.dto.request.AuthenticationRequest;
 import com.medical.pneumonia.dto.request.IntrospectRequest;
+import com.medical.pneumonia.dto.request.LogoutRequest;
+import com.medical.pneumonia.dto.request.RefreshRequest;
 import com.medical.pneumonia.dto.response.AuthenticationResponse;
 import com.medical.pneumonia.dto.response.IntrospectResponse;
 import com.medical.pneumonia.service.AuthenticationService;
@@ -38,4 +40,18 @@ public class AuthenticationController {
         .result(authenticationService.introspect(request))
         .build();
     }
+
+    @PostMapping("/logout")
+    ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException{
+        authenticationService.logout(request);
+        return ApiResponse.<Void>builder()
+        .build();
+    }
+
+    @PostMapping("refresh")
+    ApiResponse<AuthenticationResponse> refresh(@RequestBody RefreshRequest request) throws ParseException, JOSEException{
+        return ApiResponse.<AuthenticationResponse>builder()
+        .result(authenticationService.refreshToken(request))
+        .build();
+    }    
 }

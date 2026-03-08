@@ -8,25 +8,25 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.crypto.spec.SecretKeySpec;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+    @Autowired
+    CustomJwtDecoder customJwtDecoder;
 
     private final String[] PUBLIC_ENDPOINT = {
         "/users",
-        "/auth/login"
+        "/auth/login",
+        "/auth/logout",
+        "/auth/refresh"
     };
 
     private final String[] ADMIN_ENDPOINT = {
@@ -43,13 +43,15 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(request -> 
             request.requestMatchers(HttpMethod.POST,PUBLIC_ENDPOINT).permitAll()
-            .requestMatchers(ADMIN_ENDPOINT).permitAll()
+            .requestMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
             .anyRequest().authenticated()
         )
         // Custom verify JWT (Get token from Authorization header, check signature, check expiration)
         .oauth2ResourceServer(oauth2 -> 
-            oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
-            .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+            oauth2.jwt(jwtConfigurer -> 
+                jwtConfigurer.decoder(customJwtDecoder)
+                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+            )
             .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
         // Auto verify JWT (Get token from Authorization header, check signature, check expiration)
@@ -67,15 +69,6 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
 
         return converter;
-    }
-
-    @Bean
-    public JwtDecoder jwtDecoder(){
-        SecretKeySpec secretKey = new SecretKeySpec(signerKey.getBytes(),"HS512");
-        return NimbusJwtDecoder
-        .withSecretKey(secretKey)
-        .macAlgorithm(MacAlgorithm.HS512)
-        .build();
     }
 
     @Bean

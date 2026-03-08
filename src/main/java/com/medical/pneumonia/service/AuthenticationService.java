@@ -1,21 +1,28 @@
 package com.medical.pneumonia.service;
 
+import java.text.ParseException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.StringJoiner;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import com.medical.pneumonia.dto.request.AuthenticationRequest;
 import com.medical.pneumonia.dto.request.IntrospectRequest;
+import com.medical.pneumonia.dto.request.LogoutRequest;
+import com.medical.pneumonia.dto.request.RefreshRequest;
 import com.medical.pneumonia.dto.response.AuthenticationResponse;
 import com.medical.pneumonia.dto.response.IntrospectResponse;
+import com.medical.pneumonia.entity.InvalidToken;
 import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
+import com.medical.pneumonia.repository.InvalidTokenRepository;
 import com.medical.pneumonia.repository.UserRepository;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -40,26 +47,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuthenticationService {
     UserRepository userRepository;
+    InvalidTokenRepository invalidTokenRepository;
+    PasswordEncoder passwordEncoder;
 
     @NonFinal
     @Value("${jwt.signerKey}")
     protected String SINGER_KEY;
 
+    @NonFinal 
+    @Value("${jwt.valid-duration}")
+    protected long VALID_DURATION;
+
+    @NonFinal 
+    @Value("${jwt.refreshable-duration}")
+    protected long REFRESH_DURATION;
+
     public IntrospectResponse introspect(IntrospectRequest request) {
         try {
-            SignedJWT signedJWT = SignedJWT.parse(request.getToken());
-
-            JWSVerifier verifier = new MACVerifier(SINGER_KEY.getBytes());
-
-            boolean verified = signedJWT.verify(verifier);
-
-            Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
-
-            boolean notExpired = expiration != null &&
-                    expiration.after(new Date());
+            
+            verifyToken(request.getToken(), false);
 
             return IntrospectResponse.builder()
-                    .valid(verified && notExpired)
+                    .valid(true) 
                     .build();
 
         } catch (Exception e) {
@@ -69,8 +78,82 @@ public class AuthenticationService {
         }
     }
 
+    public void logout(LogoutRequest request) throws JOSEException, ParseException{
+        var signToken = verifyToken(request.getToken(), false);
+        String jit = signToken.getJWTClaimsSet().getJWTID();
+
+        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+
+        InvalidToken invalidToken = InvalidToken.builder()
+            .id(jit)
+            .expiryTime(expiryTime)
+            .build();
+
+        invalidTokenRepository.save(invalidToken);
+    }
+
+    private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {
+
+        SignedJWT signedJWT = SignedJWT.parse(token);
+
+        JWSVerifier verifier = new MACVerifier(SINGER_KEY.getBytes());
+
+        boolean verified = signedJWT.verify(verifier);
+
+        if(!verified){
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        Date expiration = (isRefresh) 
+            ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
+                .toInstant().plus(REFRESH_DURATION, ChronoUnit.SECONDS).toEpochMilli())
+            : signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        if(expiration == null || expiration.before(new Date())){
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        String jit = signedJWT.getJWTClaimsSet().getJWTID();
+
+        if(invalidTokenRepository.existsById(jit)){
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        return signedJWT;
+    }
+
+    public AuthenticationResponse refreshToken(RefreshRequest request) throws JOSEException, ParseException{
+        var signedJwt = verifyToken(request.getToken(), true);
+
+        var jit = signedJwt.getJWTClaimsSet().getJWTID();
+
+        if(invalidTokenRepository.existsById(jit)){
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        var expiryTime = signedJwt.getJWTClaimsSet().getExpirationTime();
+
+        InvalidToken invalidToken = InvalidToken.builder()
+            .id(jit)
+            .expiryTime(expiryTime)
+            .build();
+
+        invalidTokenRepository.save(invalidToken);
+
+        var username = signedJwt.getJWTClaimsSet().getSubject();
+
+        var user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+
+        var token = generateToken(user);
+
+        return AuthenticationResponse.builder()
+            .token(token)
+            .authenticated(true)
+            .build();
+    }
+
     public AuthenticationResponse Authenticated(AuthenticationRequest request) {
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
@@ -91,8 +174,10 @@ public class AuthenticationService {
                 .subject(user.getUsername())
                 .issuer("medical-pneumonia")
                 .issueTime(new Date(System.currentTimeMillis()))
-                .expirationTime(new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000))
+                .expirationTime(new Date(Instant.now().plus(VALID_DURATION,ChronoUnit.SECONDS).toEpochMilli()
+                ))
                 // Security read role by scope
+                .jwtID(UUID.randomUUID().toString())
                 .claim("scope", buildScope(user))
                 .build();
 
