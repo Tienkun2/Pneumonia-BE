@@ -17,9 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ApplicationInitConfig {
 
-    PasswordEncoder passwordEncoder;
-    RoleRepository roleRepository;
-
     @Bean
     public ApplicationRunner applicationRunner(UserRepository userRepository) {
         return args -> {

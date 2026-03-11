@@ -41,7 +41,7 @@ public class UserController {
     @GetMapping()
     ApiResponse<List<UserResponse>> getAllUsers() {
         return ApiResponse.<List<UserResponse>>builder()
-        .message("User list successfully")
+        .message("Get user list successfully")
         .result(userService.getAllUsers())
         .build();
     }

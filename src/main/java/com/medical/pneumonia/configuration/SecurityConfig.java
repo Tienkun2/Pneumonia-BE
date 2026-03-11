@@ -22,17 +22,14 @@ public class SecurityConfig {
     @Autowired
     CustomJwtDecoder customJwtDecoder;
 
-    private final String[] PUBLIC_ENDPOINT = {
-        "/users",
-        "/auth/login",
-        "/auth/logout",
-        "/auth/refresh"
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/auth/**"
     };
 
-    private final String[] ADMIN_ENDPOINT = {
-        "/users/**",
-        "/permissions/**",
-        "/roles/**"
+    private static final String[] ADMIN_ENDPOINTS = {
+            "/users/**",
+            "/roles/**",
+            "/permissions/**"
     };
 
     @Value("${jwt.signerKey}")
@@ -41,9 +38,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(request -> 
-            request.requestMatchers(HttpMethod.POST,PUBLIC_ENDPOINT).permitAll()
-            .requestMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
+        .authorizeHttpRequests(request -> request
+                // Register user
+                .requestMatchers(HttpMethod.POST, "/users").permitAll()
+
+                // Auth APIs
+                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+
+                // Admin APIs
+                .requestMatchers(ADMIN_ENDPOINTS).hasRole("ADMIN")
             .anyRequest().authenticated()
         )
         // Custom verify JWT (Get token from Authorization header, check signature, check expiration)
@@ -53,6 +56,7 @@ public class SecurityConfig {
                 .jwtAuthenticationConverter(jwtAuthenticationConverter())
             )
             .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+            .accessDeniedHandler(new JwtAccessDeniedHandler())
         );
         // Auto verify JWT (Get token from Authorization header, check signature, check expiration)
         // .oauth2ResourceServer(oauth2 -> oauth2.jwt());
