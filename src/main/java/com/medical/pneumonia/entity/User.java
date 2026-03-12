@@ -1,8 +1,5 @@
 package com.medical.pneumonia.entity;
 
-import java.time.LocalDate;
-import java.util.Set;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,17 +24,17 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "users")
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)String id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  String id;
 
-    @Column(unique = true, nullable = false)
-    String username;
+  @Column(unique = true, nullable = false)
+  String username;
 
-    @Column(nullable = false)
-    String password;
+  @Column(nullable = false)
+  String password;
 
-    LocalDate dob;
+  LocalDate dob;
 
-    @ManyToMany
-    Set<Role> roles;
+  @ManyToMany Set<Role> roles;
 }

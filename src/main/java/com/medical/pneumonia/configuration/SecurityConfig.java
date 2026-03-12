@@ -1,5 +1,7 @@
 package com.medical.pneumonia.configuration;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,71 +14,70 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    @Autowired
-    CustomJwtDecoder customJwtDecoder;
+  @Autowired CustomJwtDecoder customJwtDecoder;
 
-    private static final String[] PUBLIC_ENDPOINTS = {
-            "/auth/**"
-    };
+  private static final String[] PUBLIC_ENDPOINTS = {"/auth/**"};
 
-    private static final String[] ADMIN_ENDPOINTS = {
-            "/users/**",
-            "/roles/**",
-            "/permissions/**"
-    };
+  private static final String[] ADMIN_ENDPOINTS = {"/users/**", "/roles/**", "/permissions/**"};
 
-    @Value("${jwt.signerKey}")
-    private String signerKey;
+  @Value("${jwt.signerKey}")
+  private String signerKey;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(request -> request
-                // Register user
-                .requestMatchers(HttpMethod.POST, "/users").permitAll()
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http.csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(
+            request ->
+                request
+                    // Register user
+                    .requestMatchers(HttpMethod.POST, "/users")
+                    .permitAll()
 
-                // Auth APIs
-                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                    // Auth APIs
+                    .requestMatchers(PUBLIC_ENDPOINTS)
+                    .permitAll()
 
-                // Admin APIs
-                .requestMatchers(ADMIN_ENDPOINTS).hasRole("ADMIN")
-            .anyRequest().authenticated()
-        )
-        // Custom verify JWT (Get token from Authorization header, check signature, check expiration)
-        .oauth2ResourceServer(oauth2 -> 
-            oauth2.jwt(jwtConfigurer -> 
-                jwtConfigurer.decoder(customJwtDecoder)
-                .jwtAuthenticationConverter(jwtAuthenticationConverter())
-            )
-            .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-            .accessDeniedHandler(new JwtAccessDeniedHandler())
-        );
-        // Auto verify JWT (Get token from Authorization header, check signature, check expiration)
-        // .oauth2ResourceServer(oauth2 -> oauth2.jwt());
+                    // Admin APIs
+                    .requestMatchers(ADMIN_ENDPOINTS)
+                    .hasRole("ADMIN")
+                    .anyRequest()
+                    .authenticated())
+        // Custom verify JWT (Get token from Authorization header, check signature, check
+        // expiration)
+        .oauth2ResourceServer(
+            oauth2 ->
+                oauth2
+                    .jwt(
+                        jwtConfigurer ->
+                            jwtConfigurer
+                                .decoder(customJwtDecoder)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                    .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                    .accessDeniedHandler(new JwtAccessDeniedHandler()));
+    // Auto verify JWT (Get token from Authorization header, check signature, check expiration)
+    // .oauth2ResourceServer(oauth2 -> oauth2.jwt());
 
-        return http.build();
-    }
+    return http.build();
+  }
 
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter(){
-        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
+  @Bean
+  public JwtAuthenticationConverter jwtAuthenticationConverter() {
+    JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter =
+        new JwtGrantedAuthoritiesConverter();
+    jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
 
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
 
-        return converter;
-    }
+    return converter;
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder(10);
-    }
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(10);
+  }
 }

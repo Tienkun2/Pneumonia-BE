@@ -13,6 +13,6 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PermissionUpdateRequest {
-    String name;
-    String description;
+  String name;
+  String description;
 }

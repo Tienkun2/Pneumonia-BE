@@ -11,13 +11,14 @@ import lombok.Data;
 @Data
 @Table(name = "user_profile")
 public class UserProfile {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
-    private String name;
-    private String gender;
-    private String email;
-    private String phone;
-    private String address;
-    private String profile_picture;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private String id;
+
+  private String name;
+  private String gender;
+  private String email;
+  private String phone;
+  private String address;
+  private String profile_picture;
 }

@@ -4,10 +4,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.medical.pneumonia.dto.request.UserCreationRequest;
+import com.medical.pneumonia.dto.request.UserUpdateRequest;
+import com.medical.pneumonia.dto.response.UserResponse;
+import com.medical.pneumonia.entity.Role;
+import com.medical.pneumonia.entity.User;
+import com.medical.pneumonia.exception.AppException;
+import com.medical.pneumonia.mapper.UserMapper;
+import com.medical.pneumonia.repository.RoleRepository;
+import com.medical.pneumonia.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,346 +26,269 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.medical.pneumonia.dto.request.UserCreationRequest;
-import com.medical.pneumonia.dto.request.UserUpdateRequest;
-import com.medical.pneumonia.dto.response.UserResponse;
-import com.medical.pneumonia.entity.Role;
-import com.medical.pneumonia.entity.User;
-import com.medical.pneumonia.exception.AppException;
-import com.medical.pneumonia.mapper.UserMapper;
-import com.medical.pneumonia.repository.RoleRepository;
-import com.medical.pneumonia.repository.UserRepository;
-
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @Mock
-    UserRepository userRepository;
+  @Mock UserRepository userRepository;
 
-    @Mock
-    RoleRepository roleRepository;
+  @Mock RoleRepository roleRepository;
 
-    @Mock
-    PasswordEncoder passwordEncoder;
+  @Mock PasswordEncoder passwordEncoder;
 
-    @Mock
-    UserMapper userMapper;
+  @Mock UserMapper userMapper;
 
-    @InjectMocks
-    UserService userService;
+  @InjectMocks UserService userService;
 
-    User user;
-    UserResponse response;
-    Role adminRole;
-    UserCreationRequest creationRequest;
-    UserUpdateRequest updateRequest;
+  User user;
+  UserResponse response;
+  Role userRole;
+  UserCreationRequest creationRequest;
+  UserUpdateRequest updateRequest;
 
-    @BeforeEach
-    void setUp() {
+  @BeforeEach
+  void setUp() {
 
-        adminRole = Role.builder()
-                .name("ADMIN")
-                .build();
+    userRole = Role.builder().name("USER").build();
 
-        user = User.builder()
-                .id("1")
-                .username("testuser")
-                .roles(Set.of(adminRole))
-                .build();
+    user = User.builder().id("1").username("testuser").roles(Set.of(userRole)).build();
 
-        response = UserResponse.builder()
-                .username("testuser")
-                .build();
+    response = UserResponse.builder().username("testuser").build();
 
-        creationRequest = UserCreationRequest.builder()
-                .username("testuser")
-                .password("123456")
-                .roles(List.of("ADMIN"))
-                .build();
+    creationRequest = UserCreationRequest.builder().username("testuser").password("123456").build();
 
-        updateRequest = UserUpdateRequest.builder()
-                .password("newpassword")
-                .roles(List.of("ADMIN"))
-                .build();
-    }
+    updateRequest =
+        UserUpdateRequest.builder().password("newpassword").roles(List.of("USER")).build();
+  }
 
-    // ================= CREATE USER =================
+  // ================= CREATE USER =================
 
-    @Test
-    void createUser_success() {
+  @Test
+  void createUser_success() {
 
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(false);
+    when(userRepository.existsByUsername("testuser")).thenReturn(false);
 
-        when(userMapper.toUser(creationRequest))
-                .thenReturn(user);
+    when(userMapper.toUser(creationRequest)).thenReturn(user);
 
-        when(passwordEncoder.encode("123456"))
-                .thenReturn("encodedPassword");
+    when(passwordEncoder.encode("123456")).thenReturn("encodedPassword");
 
-        when(roleRepository.findAllById(creationRequest.getRoles()))
-                .thenReturn(List.of(adminRole));
+    when(roleRepository.findById("USER")).thenReturn(Optional.of(userRole));
 
-        when(userRepository.save(user))
-                .thenReturn(user);
+    when(userRepository.save(user)).thenReturn(user);
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
-        UserResponse result = userService.createUser(creationRequest);
+    UserResponse result = userService.createUser(creationRequest);
 
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
+    assertNotNull(result);
+    assertEquals("testuser", result.getUsername());
 
-        verify(userRepository).save(user);
-    }
+    verify(userRepository).save(user);
+  }
 
-    @Test
-    void createUser_userAlreadyExists_throwException() {
+  @Test
+  void createUser_userAlreadyExists_throwException() {
 
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(true);
+    when(userRepository.existsByUsername("testuser")).thenReturn(true);
 
-        assertThrows(AppException.class,
-                () -> userService.createUser(creationRequest));
+    assertThrows(AppException.class, () -> userService.createUser(creationRequest));
 
-        verify(userRepository, never()).save(any());
-    }
+    verify(userRepository, never()).save(any());
+  }
 
-    @Test
-    void createUser_roleNotFound_throwException() {
+  @Test
+  void createUser_roleNotFound_throwException() {
 
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(false);
+    when(userRepository.existsByUsername("testuser")).thenReturn(false);
 
-        when(userMapper.toUser(creationRequest))
-                .thenReturn(user);
+    when(userMapper.toUser(creationRequest)).thenReturn(user);
 
-        when(roleRepository.findAllById(creationRequest.getRoles()))
-                .thenReturn(List.of());
+    when(roleRepository.findById("USER")).thenReturn(Optional.empty());
 
-        assertThrows(AppException.class,
-                () -> userService.createUser(creationRequest));
-    }
+    assertThrows(AppException.class, () -> userService.createUser(creationRequest));
+  }
 
-    @Test
-        void createUser_passwordShouldBeEncoded() {
+  @Test
+  void createUser_passwordShouldBeEncoded() {
 
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(false);
+    when(userRepository.existsByUsername("testuser")).thenReturn(false);
 
-        when(userMapper.toUser(creationRequest))
-                .thenReturn(user);
+    when(userMapper.toUser(creationRequest)).thenReturn(user);
 
-        when(passwordEncoder.encode("123456"))
-                .thenReturn("encodedPassword");
+    when(passwordEncoder.encode("123456")).thenReturn("encodedPassword");
 
-        when(roleRepository.findAllById(creationRequest.getRoles()))
-                .thenReturn(List.of(adminRole));
+    when(roleRepository.findById("USER")).thenReturn(Optional.of(userRole));
 
-        when(userRepository.save(user))
-                .thenReturn(user);
+    when(userRepository.save(user)).thenReturn(user);
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
-
-        userService.createUser(creationRequest);
-
-        verify(passwordEncoder).encode("123456");
-        }
-
-    // ================= GET USER =================
-
-    @Test
-    void getUserById_success() {
-
-        when(userRepository.findById("1"))
-                .thenReturn(Optional.of(user));
-
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
-
-        UserResponse result = userService.getUserById("1");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
-
-    @Test
-    void getUserById_userNotFound_throwException() {
-
-        when(userRepository.findById("1"))
-                .thenReturn(Optional.empty());
-
-        assertThrows(AppException.class,
-                () -> userService.getUserById("1"));
-    }
-
-    @Test
-void createUser_rolesShouldBeSetCorrectly() {
-
-    when(userRepository.existsByUsername("testuser"))
-            .thenReturn(false);
-
-    when(userMapper.toUser(creationRequest))
-            .thenReturn(user);
-
-    when(passwordEncoder.encode("123456"))
-            .thenReturn("encodedPassword");
-
-    when(roleRepository.findAllById(creationRequest.getRoles()))
-            .thenReturn(List.of(adminRole));
-
-    when(userRepository.save(user))
-            .thenReturn(user);
-
-    when(userMapper.toUserResponse(user))
-            .thenReturn(response);
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
     userService.createUser(creationRequest);
 
-    assertTrue(user.getRoles().contains(adminRole));
-}
+    verify(passwordEncoder).encode("123456");
+  }
 
-    // ================= DELETE USER =================
+  @Test
+  void createUser_shouldAssignUserRole() {
 
-    @Test
-    void deleteUser_success() {
+    when(userRepository.existsByUsername("testuser")).thenReturn(false);
 
-        when(userRepository.findById("1"))
-                .thenReturn(Optional.of(user));
+    when(userMapper.toUser(creationRequest)).thenReturn(user);
 
-        userService.deleteUser("1");
+    when(passwordEncoder.encode("123456")).thenReturn("encodedPassword");
 
-        verify(userRepository).delete(user);
-    }
+    when(roleRepository.findById("USER")).thenReturn(Optional.of(userRole));
 
-    @Test
-    void deleteUser_userNotFound_throwException() {
+    when(userRepository.save(user)).thenReturn(user);
 
-        when(userRepository.findById("1"))
-                .thenReturn(Optional.empty());
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
-        assertThrows(AppException.class,
-                () -> userService.deleteUser("1"));
-    }
+    userService.createUser(creationRequest);
 
-    // ================= UPDATE USER =================
+    assertTrue(user.getRoles().contains(userRole));
+  }
 
-    @Test
-    void updateUser_success() {
+  // ================= GET USER =================
 
-        when(userRepository.findById("1"))
-                .thenReturn(Optional.of(user));
+  @Test
+  void getUserById_success() {
 
-        when(passwordEncoder.encode(updateRequest.getPassword()))
-                .thenReturn("encodedPassword");
+    when(userRepository.findById("1")).thenReturn(Optional.of(user));
 
-        when(roleRepository.findAllById(updateRequest.getRoles()))
-                .thenReturn(List.of(adminRole));
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
-        when(userRepository.save(user))
-                .thenReturn(user);
+    UserResponse result = userService.getUserById("1");
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
+    assertNotNull(result);
+    assertEquals("testuser", result.getUsername());
+  }
 
-        UserResponse result = userService.updateUser("1", updateRequest);
+  @Test
+  void getUserById_userNotFound_throwException() {
 
-        assertNotNull(result);
+    when(userRepository.findById("1")).thenReturn(Optional.empty());
 
-        verify(userMapper).updateUser(user, updateRequest);
-        verify(userRepository).save(user);
-    }
-    
-    @Test
-        void updateUser_rolesShouldBeUpdated() {
+    assertThrows(AppException.class, () -> userService.getUserById("1"));
+  }
 
-        when(userRepository.findById("1"))
-                .thenReturn(Optional.of(user));
+  // ================= DELETE USER =================
 
-        when(passwordEncoder.encode(updateRequest.getPassword()))
-                .thenReturn("encodedPassword");
+  @Test
+  void deleteUser_success() {
 
-        when(roleRepository.findAllById(updateRequest.getRoles()))
-                .thenReturn(List.of(adminRole));
+    when(userRepository.findById("1")).thenReturn(Optional.of(user));
 
-        when(userRepository.save(user))
-                .thenReturn(user);
+    userService.deleteUser("1");
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
+    verify(userRepository).delete(user);
+  }
 
-        userService.updateUser("1", updateRequest);
+  @Test
+  void deleteUser_userNotFound_throwException() {
 
-        assertEquals(1, user.getRoles().size());
-        }
+    when(userRepository.findById("1")).thenReturn(Optional.empty());
 
-    // ================= GET ALL USERS =================
+    assertThrows(AppException.class, () -> userService.deleteUser("1"));
+  }
 
-    @Test
-    void getAllUsers_success() {
+  // ================= UPDATE USER =================
 
-        when(userRepository.findAll())
-                .thenReturn(List.of(user));
+  @Test
+  void updateUser_success() {
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
+    when(userRepository.findById("1")).thenReturn(Optional.of(user));
 
-        List<UserResponse> result = userService.getAllUsers();
+    when(passwordEncoder.encode(updateRequest.getPassword())).thenReturn("encodedPassword");
 
-        assertEquals(1, result.size());
-    }
+    when(roleRepository.findAllById(updateRequest.getRoles())).thenReturn(List.of(userRole));
 
-    @Test
-        void getAllUsers_mapperShouldBeCalled() {
+    when(userRepository.save(user)).thenReturn(user);
 
-        when(userRepository.findAll())
-                .thenReturn(List.of(user));
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
+    UserResponse result = userService.updateUser("1", updateRequest);
 
-        userService.getAllUsers();
+    assertNotNull(result);
 
-        verify(userMapper).toUserResponse(user);
-        }
-    // ================= GET MY INFO =================
+    verify(userMapper).updateUser(user, updateRequest);
+    verify(userRepository).save(user);
+  }
 
-    @Test
-    void getMyInfo_success() {
+  @Test
+  void updateUser_rolesShouldBeUpdated() {
 
-        Authentication authentication = mock(Authentication.class);
+    when(userRepository.findById("1")).thenReturn(Optional.of(user));
 
-        when(authentication.getName()).thenReturn("testuser");
+    when(passwordEncoder.encode(updateRequest.getPassword())).thenReturn("encodedPassword");
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+    when(roleRepository.findAllById(updateRequest.getRoles())).thenReturn(List.of(userRole));
 
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.of(user));
+    when(userRepository.save(user)).thenReturn(user);
 
-        when(userMapper.toUserResponse(user))
-                .thenReturn(response);
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
-        UserResponse result = userService.getMyInfo();
+    userService.updateUser("1", updateRequest);
 
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-    }
+    assertEquals(1, user.getRoles().size());
+  }
 
-    @Test
-    void getMyInfo_userNotFound_throwException() {
+  // ================= GET ALL USERS =================
 
-        Authentication authentication = mock(Authentication.class);
+  @Test
+  void getAllUsers_success() {
 
-        when(authentication.getName()).thenReturn("testuser");
+    when(userRepository.findAll()).thenReturn(List.of(user));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+    when(userMapper.toUserResponse(user)).thenReturn(response);
 
-        when(userRepository.findByUsername("testuser"))
-                .thenReturn(Optional.empty());
+    List<UserResponse> result = userService.getAllUsers();
 
-        assertThrows(AppException.class,
-                () -> userService.getMyInfo());
-    }
+    assertEquals(1, result.size());
+  }
+
+  @Test
+  void getAllUsers_mapperShouldBeCalled() {
+
+    when(userRepository.findAll()).thenReturn(List.of(user));
+
+    when(userMapper.toUserResponse(user)).thenReturn(response);
+
+    userService.getAllUsers();
+
+    verify(userMapper).toUserResponse(user);
+  }
+
+  // ================= GET MY INFO =================
+
+  @Test
+  void getMyInfo_success() {
+
+    Authentication authentication = mock(Authentication.class);
+
+    when(authentication.getName()).thenReturn("testuser");
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+    when(userMapper.toUserResponse(user)).thenReturn(response);
+
+    UserResponse result = userService.getMyInfo();
+
+    assertNotNull(result);
+    assertEquals("testuser", result.getUsername());
+  }
+
+  @Test
+  void getMyInfo_userNotFound_throwException() {
+
+    Authentication authentication = mock(Authentication.class);
+
+    when(authentication.getName()).thenReturn("testuser");
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+
+    assertThrows(AppException.class, () -> userService.getMyInfo());
+  }
 }

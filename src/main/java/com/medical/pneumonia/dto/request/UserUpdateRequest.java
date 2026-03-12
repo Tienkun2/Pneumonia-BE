@@ -2,7 +2,6 @@ package com.medical.pneumonia.dto.request;
 
 import java.time.LocalDate;
 import java.util.List;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,8 +15,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserUpdateRequest {
-    String username;
-    String password;
-    LocalDate dob;
-    List<String> roles;
+  String username;
+  String password;
+  LocalDate dob;
+  List<String> roles;
 }
