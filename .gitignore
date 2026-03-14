@@ -33,4 +33,4 @@ build/
 .vscode/
 
 ### Others ###
-application-local.yaml
+application.yaml
