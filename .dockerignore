@@ -1,4 +1,5 @@
-target
+target/*
+!target/pneumonia-backend.jar
 .mvn
 .idea
 .vscode

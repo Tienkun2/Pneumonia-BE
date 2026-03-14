@@ -1,8 +1,9 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/pneumonia_db
+    username: postgres
+    password: 123456
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -11,7 +12,12 @@ spring:
       hibernate:
         format_sql: true
 
+jwt:
+  signerKey: "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJtZWRpY2FsLXBuZXVtb25pYSIsImlzcyI6Im1lZGljYWwtcG5ldW1vbmlhIiwiaWF0IjoxNzQxMTQ0MzE5LCJleHAiOjE3NDE0MDMzMTl9.5855855855855855855855855855855855855855855855855855855855855855"
+  valid-duration: 3600 # second
+  refreshable-duration: 360000 # second
 server:
-  port: ${PORT:8080}
+  port: 8080
   servlet:
     context-path: /api/v1
+

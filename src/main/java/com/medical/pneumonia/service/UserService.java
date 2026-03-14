@@ -16,6 +16,8 @@ import java.util.Set;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,7 +56,13 @@ public class UserService {
 
     user.setRoles(Set.of(role));
 
-    return userMapper.toUserResponse(userRepository.save(user));
+    try {
+      user = userRepository.save(user);
+    } catch (DataIntegrityViolationException e) {
+      throw new AppException(ErrorCode.USER_EXISTED);
+    }
+
+    return userMapper.toUserResponse(user);
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")

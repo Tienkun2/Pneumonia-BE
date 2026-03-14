@@ -1,4 +1,4 @@
-package com.medical.pneumonia.config;
+package com.medical.pneumonia.configuration;
 
 import java.util.List;
 import org.springframework.context.annotation.Bean;
