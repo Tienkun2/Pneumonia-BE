@@ -44,7 +44,7 @@ class UserControllerTest {
 
   @BeforeEach
   void setUp() {
-    request = UserCreationRequest.builder().username("test1231").password("test1234").build();
+    request = UserCreationRequest.builder().username("test1231").email("test@example.com").build();
 
     response = UserResponse.builder().username("test1231").build();
   }
@@ -84,25 +84,6 @@ class UserControllerTest {
         .andExpect(jsonPath("$.code").value("4004"))
         .andExpect(jsonPath("$.message").value("Username must be at least 6 characters long"))
         .andDo(print());
-    // If validate failed, not call service
-    Mockito.verify(userService, never()).createUser(ArgumentMatchers.any());
-  }
-
-  @Test
-  void createUser_passwordLengthFailed_failed() throws Exception {
-    request.setPassword("test");
-
-    mockMvc
-        .perform(
-            post("/users")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("4005"))
-        .andExpect(jsonPath("$.message").value("Password must be at least 6 characters long"))
-        .andDo(print());
-    // If validate failed, not call service
     Mockito.verify(userService, never()).createUser(ArgumentMatchers.any());
   }
 
@@ -128,5 +109,23 @@ class UserControllerTest {
         .andExpect(
             jsonPath("$.message").value("You do not have permission to access this resource"))
         .andDo(print());
+  }
+
+  @Test
+  void setPassword_success() throws Exception {
+
+    mockMvc
+        .perform(
+            post("/users/set-password")
+                .param("token", "valid-token")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"newpassword\"}"))
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value("0"))
+        .andExpect(jsonPath("$.message").value("Password set successfully"));
+
+    Mockito.verify(userService).setPassword("valid-token", "newpassword");
   }
 }

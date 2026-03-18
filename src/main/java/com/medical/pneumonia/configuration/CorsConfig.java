@@ -18,10 +18,11 @@ public class CorsConfig {
 
   @Bean
   public CorsFilter corsFilter() {
-    List<String> allowedOrigins = Arrays.stream(allowedOriginsConfig.split(","))
-        .map(String::trim)
-        .filter(s -> !s.isEmpty())
-        .collect(Collectors.toList());
+    List<String> allowedOrigins =
+        Arrays.stream(allowedOriginsConfig.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
 
     CorsConfiguration config = new CorsConfiguration();
     config.setAllowedOrigins(allowedOrigins);

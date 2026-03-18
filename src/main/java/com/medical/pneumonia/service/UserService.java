@@ -1,7 +1,9 @@
 package com.medical.pneumonia.service;
 
+import com.medical.pneumonia.constant.UserStatus;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
 import com.medical.pneumonia.dto.request.UserUpdateRequest;
+import com.medical.pneumonia.dto.response.PageResponse;
 import com.medical.pneumonia.dto.response.UserResponse;
 import com.medical.pneumonia.entity.Role;
 import com.medical.pneumonia.entity.User;
@@ -10,14 +12,17 @@ import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.UserMapper;
 import com.medical.pneumonia.repository.RoleRepository;
 import com.medical.pneumonia.repository.UserRepository;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +37,7 @@ public class UserService {
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
+  EmailService emailService;
 
   private User getUserEntity(String id) {
     return userRepository
@@ -39,6 +45,7 @@ public class UserService {
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
   }
 
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public UserResponse createUser(UserCreationRequest request) {
 
     if (userRepository.existsByUsername(request.getUsername())) {
@@ -47,8 +54,6 @@ public class UserService {
 
     User user = userMapper.toUser(request);
 
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
-
     Role role =
         roleRepository
             .findById("USER")
@@ -56,18 +61,35 @@ public class UserService {
 
     user.setRoles(Set.of(role));
 
+    String token = UUID.randomUUID().toString();
+    user.setActivationToken(token);
+    user.setActivationTokenExpiry(Instant.now().plus(1, ChronoUnit.DAYS));
+    user.setStatus(UserStatus.PENDING);
+    user.setCreatedAt(Instant.now());
+
     try {
       user = userRepository.save(user);
     } catch (DataIntegrityViolationException e) {
       throw new AppException(ErrorCode.USER_EXISTED);
     }
 
+    emailService.sendActivationEmail(request.getEmail(), user.getUsername(), token);
+
     return userMapper.toUserResponse(user);
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  public List<UserResponse> getAllUsers() {
-    return userRepository.findAll().stream().map(userMapper::toUserResponse).toList();
+  public PageResponse<UserResponse> getAllUsers(int page, int size) {
+    Pageable pageable = PageRequest.of(page - 1, size);
+    var pageData = userRepository.findAll(pageable);
+
+    return PageResponse.<UserResponse>builder()
+        .currentPage(page)
+        .pageSize(pageData.getSize())
+        .totalPages(pageData.getTotalPages())
+        .totalElements(pageData.getTotalElements())
+        .data(pageData.getContent().stream().map(userMapper::toUserResponse).toList())
+        .build();
   }
 
   public UserResponse getUserById(String id) {
@@ -78,16 +100,29 @@ public class UserService {
     userRepository.delete(getUserEntity(id));
   }
 
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public UserResponse updateUser(String id, UserUpdateRequest request) {
 
     User user = getUserEntity(id);
 
+    if (request.getUsername() != null
+        && !request.getUsername().equals(user.getUsername())
+        && userRepository.existsByUsername(request.getUsername())) {
+      throw new AppException(ErrorCode.USER_EXISTED);
+    }
+
+    if (request.getEmail() != null
+        && !request.getEmail().equals(user.getEmail())
+        && userRepository.existsByEmail(request.getEmail())) {
+      throw new AppException(ErrorCode.USER_EXISTED);
+    }
+
     userMapper.updateUser(user, request);
 
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-    var roles = roleRepository.findAllById(request.getRoles());
-    user.setRoles(new HashSet<>(roles));
+    if (request.getRoles() != null) {
+      var roles = roleRepository.findAllById(request.getRoles());
+      user.setRoles(new HashSet<>(roles));
+    }
 
     return userMapper.toUserResponse(userRepository.save(user));
   }
@@ -101,5 +136,40 @@ public class UserService {
             .findByUsername(username)
             .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     return userMapper.toUserResponse(user);
+  }
+
+  public void setPassword(String token, String password) {
+    User user =
+        userRepository
+            .findByActivationToken(token)
+            .orElseThrow(() -> new AppException(ErrorCode.INVALID_ACTIVATION_TOKEN));
+
+    if (user.getActivationTokenExpiry().isBefore(Instant.now())) {
+      throw new AppException(ErrorCode.INVALID_ACTIVATION_TOKEN);
+    }
+
+    user.setPassword(passwordEncoder.encode(password));
+    user.setStatus(UserStatus.ACTIVE);
+    user.setActivationToken(null);
+    user.setActivationTokenExpiry(null);
+    userRepository.save(user);
+  }
+
+  public void resendActivation(String email) {
+    User user =
+        userRepository
+            .findByEmail(email)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+    if (UserStatus.ACTIVE.equals(user.getStatus())) {
+      throw new AppException(ErrorCode.USER_ALREADY_ACTIVE);
+    }
+
+    String token = UUID.randomUUID().toString();
+    user.setActivationToken(token);
+    user.setActivationTokenExpiry(Instant.now().plus(1, ChronoUnit.DAYS));
+    userRepository.save(user);
+
+    emailService.sendActivationEmail(email, user.getUsername(), token);
   }
 }

@@ -1,6 +1,5 @@
-package com.medical.pneumonia.dto.request;
+package com.medical.pneumonia.dto.response;
 
-import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -10,15 +9,14 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreationRequest {
-  @Size(min = 6, message = "USERNAME_INVALID")
-  String username;
-
-  String email;
-
-  List<String> roles;
+public class PageResponse<T> {
+  int currentPage;
+  int totalPages;
+  int pageSize;
+  long totalElements;
+  List<T> data;
 }

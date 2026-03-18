@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -35,6 +36,21 @@ public class User {
   String password;
 
   LocalDate dob;
+
+  @Column(unique = true)
+  String email;
+
+  String phoneNumber;
+
+  String displayName;
+
+  String status;
+
+  Instant createdAt;
+
+  String activationToken;
+
+  Instant activationTokenExpiry;
 
   @ManyToMany Set<Role> roles;
 }

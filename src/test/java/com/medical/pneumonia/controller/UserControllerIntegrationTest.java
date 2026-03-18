@@ -11,7 +11,6 @@ import com.medical.pneumonia.configuration.CustomJwtDecoder;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
 import com.medical.pneumonia.entity.Role;
 import com.medical.pneumonia.repository.RoleRepository;
-import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,17 +53,13 @@ class UserControllerIntegrationTest {
   @BeforeEach
   void setUp() {
 
-    if (!roleRepository.existsById("USER")) {
-      Role role = Role.builder().name("USER").build();
+    if (!roleRepository.existsById("DEFAULT")) {
+      Role role = Role.builder().name("DEFAULT").build();
       roleRepository.save(role);
     }
 
     request =
-        UserCreationRequest.builder()
-            .username("test123456")
-            .password("test123456")
-            .dob(LocalDate.of(2000, 10, 1))
-            .build();
+        UserCreationRequest.builder().username("test123456").email("test@example.com").build();
   }
 
   @DynamicPropertySource
@@ -104,22 +99,6 @@ class UserControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("4004"))
-        .andDo(print());
-  }
-
-  @Test
-  void createUser_passwordLengthFailed_failed() throws Exception {
-
-    request.setPassword("123");
-
-    mockMvc
-        .perform(
-            post("/users")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("4005"))
         .andDo(print());
   }
 

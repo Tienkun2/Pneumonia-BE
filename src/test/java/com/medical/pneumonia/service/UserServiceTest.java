@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.medical.pneumonia.constant.UserStatus;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
 import com.medical.pneumonia.dto.request.UserUpdateRequest;
+import com.medical.pneumonia.dto.response.PageResponse;
 import com.medical.pneumonia.dto.response.UserResponse;
 import com.medical.pneumonia.entity.Role;
 import com.medical.pneumonia.entity.User;
@@ -13,6 +15,7 @@ import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.mapper.UserMapper;
 import com.medical.pneumonia.repository.RoleRepository;
 import com.medical.pneumonia.repository.UserRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +25,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,16 +55,23 @@ class UserServiceTest {
   @BeforeEach
   void setUp() {
 
-    userRole = Role.builder().name("USER").build();
+    userRole = Role.builder().name("DEFAULT").build();
 
-    user = User.builder().id("1").username("testuser").roles(Set.of(userRole)).build();
+    user =
+        User.builder()
+            .id("1")
+            .username("testuser")
+            .activationToken("valid-token")
+            .activationTokenExpiry(Instant.now().plusSeconds(3600))
+            .roles(Set.of(userRole))
+            .build();
 
     response = UserResponse.builder().username("testuser").build();
 
-    creationRequest = UserCreationRequest.builder().username("testuser").password("123456").build();
+    creationRequest =
+        UserCreationRequest.builder().username("testuser").email("test@example.com").build();
 
-    updateRequest =
-        UserUpdateRequest.builder().password("newpassword").roles(List.of("USER")).build();
+    updateRequest = UserUpdateRequest.builder().roles(List.of("DEFAULT")).build();
   }
 
   // ================= CREATE USER =================
@@ -197,8 +211,6 @@ class UserServiceTest {
 
     when(userRepository.findById("1")).thenReturn(Optional.of(user));
 
-    when(passwordEncoder.encode(updateRequest.getPassword())).thenReturn("encodedPassword");
-
     when(roleRepository.findAllById(updateRequest.getRoles())).thenReturn(List.of(userRole));
 
     when(userRepository.save(user)).thenReturn(user);
@@ -218,8 +230,6 @@ class UserServiceTest {
 
     when(userRepository.findById("1")).thenReturn(Optional.of(user));
 
-    when(passwordEncoder.encode(updateRequest.getPassword())).thenReturn("encodedPassword");
-
     when(roleRepository.findAllById(updateRequest.getRoles())).thenReturn(List.of(userRole));
 
     when(userRepository.save(user)).thenReturn(user);
@@ -235,24 +245,29 @@ class UserServiceTest {
 
   @Test
   void getAllUsers_success() {
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<User> userPage = new PageImpl<>(List.of(user));
 
-    when(userRepository.findAll()).thenReturn(List.of(user));
+    when(userRepository.findAll(any(Pageable.class))).thenReturn(userPage);
 
     when(userMapper.toUserResponse(user)).thenReturn(response);
 
-    List<UserResponse> result = userService.getAllUsers();
+    PageResponse<UserResponse> result = userService.getAllUsers(1, 10);
 
-    assertEquals(1, result.size());
+    assertEquals(1, result.getData().size());
+    assertEquals(1, result.getTotalElements());
   }
 
   @Test
   void getAllUsers_mapperShouldBeCalled() {
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<User> userPage = new PageImpl<>(List.of(user));
 
-    when(userRepository.findAll()).thenReturn(List.of(user));
+    when(userRepository.findAll(any(Pageable.class))).thenReturn(userPage);
 
     when(userMapper.toUserResponse(user)).thenReturn(response);
 
-    userService.getAllUsers();
+    userService.getAllUsers(1, 10);
 
     verify(userMapper).toUserResponse(user);
   }
@@ -290,5 +305,67 @@ class UserServiceTest {
     when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
 
     assertThrows(AppException.class, () -> userService.getMyInfo());
+  }
+
+  // ================= VERIFY ACTIVATION TOKEN =================
+
+  @Test
+  void verifyActivationToken_success() {
+
+    when(userRepository.findByActivationToken("valid-token")).thenReturn(Optional.of(user));
+
+    verify(userRepository).findByActivationToken("valid-token");
+  }
+
+  @Test
+  void verifyActivationToken_invalidToken_throwException() {
+
+    when(userRepository.findByActivationToken("invalid-token")).thenReturn(Optional.empty());
+  }
+
+  @Test
+  void verifyActivationToken_expiredToken_throwException() {
+
+    user.setActivationTokenExpiry(Instant.now().minusSeconds(3600));
+
+    when(userRepository.findByActivationToken("valid-token")).thenReturn(Optional.of(user));
+  }
+
+  // ================= SET PASSWORD =================
+
+  @Test
+  void setPassword_success() {
+
+    when(userRepository.findByActivationToken("valid-token")).thenReturn(Optional.of(user));
+
+    when(passwordEncoder.encode("newpassword")).thenReturn("encodedPassword");
+
+    when(userRepository.save(user)).thenReturn(user);
+
+    userService.setPassword("valid-token", "newpassword");
+
+    assertEquals(UserStatus.ACTIVE, user.getStatus());
+    assertNull(user.getActivationToken());
+    assertNull(user.getActivationTokenExpiry());
+    verify(passwordEncoder).encode("newpassword");
+    verify(userRepository).save(user);
+  }
+
+  @Test
+  void setPassword_invalidToken_throwException() {
+
+    when(userRepository.findByActivationToken("invalid-token")).thenReturn(Optional.empty());
+
+    assertThrows(AppException.class, () -> userService.setPassword("invalid-token", "newpassword"));
+  }
+
+  @Test
+  void setPassword_expiredToken_throwException() {
+
+    user.setActivationTokenExpiry(java.time.Instant.now().minusSeconds(3600));
+
+    when(userRepository.findByActivationToken("valid-token")).thenReturn(Optional.of(user));
+
+    assertThrows(AppException.class, () -> userService.setPassword("valid-token", "newpassword"));
   }
 }

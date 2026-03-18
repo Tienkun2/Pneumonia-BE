@@ -5,9 +5,11 @@ import com.medical.pneumonia.dto.request.UserUpdateRequest;
 import com.medical.pneumonia.dto.response.UserResponse;
 import com.medical.pneumonia.entity.User;
 import java.util.List;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
@@ -19,5 +21,6 @@ public interface UserMapper {
   List<UserResponse> toUserResponse(List<User> user);
 
   @Mapping(target = "roles", ignore = true)
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

@@ -21,6 +21,9 @@ public enum ErrorCode {
   USERNAME_INVALID(4004, "Username must be at least {min} characters long", HttpStatus.BAD_REQUEST),
   PASSWORD_INVALID(4005, "Password must be at least {min} characters long", HttpStatus.BAD_REQUEST),
   DOB_INVALID(4006, "You must be at least {min} years old", HttpStatus.BAD_REQUEST),
+  INVALID_ACTIVATION_TOKEN(4007, "Invalid activation token", HttpStatus.BAD_REQUEST),
+  ACTIVATION_TOKEN_EXPIRED(4008, "Activation token has expired", HttpStatus.BAD_REQUEST),
+  USER_ALREADY_ACTIVE(4009, "User is already active", HttpStatus.BAD_REQUEST),
   ;
 
   ErrorCode(int code, String message, HttpStatus httpStatusCode) {
