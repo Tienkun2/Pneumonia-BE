@@ -1,46 +1,49 @@
 package com.medical.pneumonia.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmailService {
 
-  JavaMailSender mailSender;
+  Resend resend;
 
   @Value("${application.frontend.url:http://localhost:3000}")
   @lombok.experimental.NonFinal
   String frontendUrl;
 
-  @Value("${application.mail.from:support@pneumonia.com}")
+  @Value("${application.mail.from:onboarding@resend.dev}")
   @lombok.experimental.NonFinal
   String fromEmail;
 
+  public EmailService(@Value("${resend.api-key}") String apiKey) {
+    this.resend = new Resend(apiKey);
+  }
+
   @Async
   public void sendActivationEmail(String to, String username, String token) {
+    String activationLink = frontendUrl + "/auth/activate?token=" + token;
+    String content = buildActivationTemplate(username, activationLink);
+
+    CreateEmailOptions params =
+        CreateEmailOptions.builder()
+            .from(fromEmail)
+            .to(to)
+            .subject("Kích hoạt tài khoản Pneumonia Medical System")
+            .html(content)
+            .build();
+
     try {
-      MimeMessage message = mailSender.createMimeMessage();
-      MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-      helper.setFrom(fromEmail);
-      helper.setTo(to);
-      helper.setSubject("Kích hoạt tài khoản Pneumonia Medical System");
-
-      String activationLink = frontendUrl + "/auth/activate?token=" + token;
-      String content = buildActivationTemplate(username, activationLink);
-
-      helper.setText(content, true);
-      mailSender.send(message);
-    } catch (MessagingException e) {
+      CreateEmailResponse data = resend.emails().send(params);
+    } catch (ResendException e) {
       throw new RuntimeException("Failed to send activation email", e);
     }
   }
