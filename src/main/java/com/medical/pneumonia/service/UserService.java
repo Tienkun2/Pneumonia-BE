@@ -1,6 +1,7 @@
 package com.medical.pneumonia.service;
 
 import com.medical.pneumonia.constant.UserStatus;
+import com.medical.pneumonia.dto.request.ChangePasswordRequest;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
 import com.medical.pneumonia.dto.request.UserUpdateRequest;
 import com.medical.pneumonia.dto.response.PageResponse;
@@ -27,6 +28,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +40,21 @@ public class UserService {
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
   EmailService emailService;
+  CloudinaryService cloudinaryService;
+  NotificationService notificationService;
+
+  public UserResponse uploadAvatar(MultipartFile file) {
+    var context = SecurityContextHolder.getContext();
+    String username = context.getAuthentication().getName();
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+    var result = cloudinaryService.upload(file);
+    user.setAvatar(result.get("url").toString());
+    return userMapper.toUserResponse(userRepository.save(user));
+  }
 
   private User getUserEntity(String id) {
     return userRepository
@@ -74,6 +91,9 @@ public class UserService {
     }
 
     emailService.sendActivationEmail(request.getEmail(), user.getUsername(), token);
+
+    notificationService.sendToAll(
+        "/topic/admin/notifications", "Một tài khoản mới vừa được khởi tạo: " + user.getUsername());
 
     return userMapper.toUserResponse(user);
   }
@@ -171,5 +191,22 @@ public class UserService {
     userRepository.save(user);
 
     emailService.sendActivationEmail(email, user.getUsername(), token);
+  }
+
+  public void changePassword(ChangePasswordRequest request) {
+    var context = SecurityContextHolder.getContext();
+    String username = context.getAuthentication().getName();
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+    if (request.getOldPassword() != null
+        && !passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+      throw new AppException(ErrorCode.OLD_PASSWORD_INCORRECT);
+    }
+
+    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    userRepository.save(user);
   }
 }

@@ -5,11 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,36 +20,22 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "users")
-public class User {
+@Table(name = "notifications")
+public class Notification {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @Column(unique = true, nullable = false)
-  String username;
+  @Column(nullable = false)
+  String recipientUsername;
+
+  @Column(nullable = false, columnDefinition = "TEXT")
+  String content;
 
   @Column(nullable = false)
-  String password;
+  @Builder.Default
+  boolean isRead = false;
 
-  LocalDate dob;
-
-  @Column(unique = true)
-  String email;
-
-  String phoneNumber;
-
-  String displayName;
-
-  String status;
-
+  @Column(nullable = false)
   Instant createdAt;
-
-  String activationToken;
-
-  Instant activationTokenExpiry;
-
-  String avatar;
-
-  @ManyToMany Set<Role> roles;
 }

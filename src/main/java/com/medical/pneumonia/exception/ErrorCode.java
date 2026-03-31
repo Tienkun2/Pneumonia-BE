@@ -24,6 +24,14 @@ public enum ErrorCode {
   INVALID_ACTIVATION_TOKEN(4007, "Invalid activation token", HttpStatus.BAD_REQUEST),
   ACTIVATION_TOKEN_EXPIRED(4008, "Activation token has expired", HttpStatus.BAD_REQUEST),
   USER_ALREADY_ACTIVE(4009, "User is already active", HttpStatus.BAD_REQUEST),
+  OLD_PASSWORD_INCORRECT(4010, "Old password incorrect", HttpStatus.BAD_REQUEST),
+
+  // Patient
+  PATIENT_EXISTED(5001, "Patient already exists", HttpStatus.BAD_REQUEST),
+  PATIENT_NOT_FOUND(5002, "Patient not found", HttpStatus.NOT_FOUND),
+
+  // Visit
+  VISIT_NOT_FOUND(6001, "Visit not found", HttpStatus.NOT_FOUND),
   ;
 
   ErrorCode(int code, String message, HttpStatus httpStatusCode) {

@@ -1,15 +1,17 @@
 package com.medical.pneumonia.entity;
 
+import com.medical.pneumonia.enums.ImageType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,36 +25,22 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "users")
-public class User {
+@Table(name = "medical_images")
+public class MedicalImage {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @Column(unique = true, nullable = false)
-  String username;
+  @ManyToOne
+  @JoinColumn(name = "visit_id", nullable = false)
+  Visit visit;
 
+  @Column(nullable = false, length = 1000)
+  String imageUrl;
+
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  String password;
+  ImageType type;
 
-  LocalDate dob;
-
-  @Column(unique = true)
-  String email;
-
-  String phoneNumber;
-
-  String displayName;
-
-  String status;
-
-  Instant createdAt;
-
-  String activationToken;
-
-  Instant activationTokenExpiry;
-
-  String avatar;
-
-  @ManyToMany Set<Role> roles;
+  Instant uploadedAt;
 }

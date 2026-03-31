@@ -1,15 +1,16 @@
 package com.medical.pneumonia.entity;
 
+import com.medical.pneumonia.enums.Gender;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,36 +24,28 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "users")
-public class User {
+@Table(name = "patients")
+public class Patient {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
   @Column(unique = true, nullable = false)
-  String username;
+  String code;
 
   @Column(nullable = false)
-  String password;
+  String fullName;
 
-  LocalDate dob;
+  LocalDate dateOfBirth;
 
-  @Column(unique = true)
-  String email;
+  @Enumerated(EnumType.STRING)
+  Gender gender;
 
-  String phoneNumber;
+  String guardianName;
 
-  String displayName;
+  String phone;
 
-  String status;
+  String address;
 
   Instant createdAt;
-
-  String activationToken;
-
-  Instant activationTokenExpiry;
-
-  String avatar;
-
-  @ManyToMany Set<Role> roles;
 }

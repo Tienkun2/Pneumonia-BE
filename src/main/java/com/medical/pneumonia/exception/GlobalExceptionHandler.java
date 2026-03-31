@@ -18,6 +18,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(value = Exception.class)
   ResponseEntity<ApiResponse> handlingException(Exception exception) {
+    log.error("Exception: ", exception);
     ApiResponse apiResponse =
         ApiResponse.builder()
             .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())

@@ -1,15 +1,17 @@
 package com.medical.pneumonia.entity;
 
+import com.medical.pneumonia.enums.DiagnosisResult;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,36 +25,28 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "users")
-public class User {
+@Table(name = "diagnoses")
+public class Diagnosis {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @Column(unique = true, nullable = false)
-  String username;
+  @ManyToOne
+  @JoinColumn(name = "visit_id", nullable = false)
+  Visit visit;
 
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  String password;
+  DiagnosisResult result;
 
-  LocalDate dob;
+  Double confidenceScore;
 
-  @Column(unique = true)
-  String email;
+  String modelVersion;
 
-  String phoneNumber;
+  Boolean doctorConfirm;
 
-  String displayName;
-
-  String status;
+  @Column(columnDefinition = "TEXT")
+  String note;
 
   Instant createdAt;
-
-  String activationToken;
-
-  Instant activationTokenExpiry;
-
-  String avatar;
-
-  @ManyToMany Set<Role> roles;
 }

@@ -5,11 +5,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,36 +22,24 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "users")
-public class User {
+@Table(name = "visits")
+public class Visit {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @Column(unique = true, nullable = false)
-  String username;
+  @ManyToOne
+  @JoinColumn(name = "patient_id", nullable = false)
+  Patient patient;
 
   @Column(nullable = false)
-  String password;
+  Instant visitDate;
 
-  LocalDate dob;
+  @Column(columnDefinition = "TEXT")
+  String symptoms;
 
-  @Column(unique = true)
-  String email;
+  @Column(columnDefinition = "TEXT")
+  String note;
 
-  String phoneNumber;
-
-  String displayName;
-
-  String status;
-
-  Instant createdAt;
-
-  String activationToken;
-
-  Instant activationTokenExpiry;
-
-  String avatar;
-
-  @ManyToMany Set<Role> roles;
+  String createdBy;
 }

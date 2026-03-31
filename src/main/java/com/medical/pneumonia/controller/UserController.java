@@ -1,6 +1,7 @@
 package com.medical.pneumonia.controller;
 
 import com.medical.pneumonia.dto.request.ApiResponse;
+import com.medical.pneumonia.dto.request.ChangePasswordRequest;
 import com.medical.pneumonia.dto.request.ResendPasswordRequest;
 import com.medical.pneumonia.dto.request.SetPasswordRequest;
 import com.medical.pneumonia.dto.request.UserCreationRequest;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -90,5 +92,19 @@ public class UserController {
   ApiResponse<Void> resendActivation(@RequestBody ResendPasswordRequest request) {
     userService.resendActivation(request.getEmail());
     return ApiResponse.<Void>builder().message("Activation email sent successfully").build();
+  }
+
+  @PostMapping("/upload-avatar")
+  ApiResponse<UserResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
+    return ApiResponse.<UserResponse>builder()
+        .message("Avatar uploaded successfully")
+        .result(userService.uploadAvatar(file))
+        .build();
+  }
+
+  @PostMapping("/change-password")
+  ApiResponse<Void> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+    userService.changePassword(request);
+    return ApiResponse.<Void>builder().message("Password changed successfully").build();
   }
 }
