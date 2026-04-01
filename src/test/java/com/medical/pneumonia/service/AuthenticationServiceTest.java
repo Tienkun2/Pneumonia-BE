@@ -7,6 +7,7 @@ import com.medical.pneumonia.dto.request.AuthenticationRequest;
 import com.medical.pneumonia.dto.response.AuthenticationResponse;
 import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.exception.AppException;
+import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.repository.InvalidTokenRepository;
 import com.medical.pneumonia.repository.UserRepository;
 import java.util.Optional;
@@ -34,12 +35,17 @@ class AuthenticationServiceTest {
   @BeforeEach
   void setup() {
 
-    authenticationService.SINGER_KEY =
+    authenticationService.signerKey =
         "1234567890123456789012345678901234567890123456789012345678901234";
-    authenticationService.VALID_DURATION = 3600;
-    authenticationService.REFRESH_DURATION = 7200;
+    authenticationService.validDuration = 3600;
+    authenticationService.refreshDuration = 7200;
 
-    user = User.builder().username("admin").password("encoded").build();
+    user =
+        User.builder()
+            .username("admin")
+            .password("encoded")
+            .status(com.medical.pneumonia.constant.UserStatus.ACTIVE)
+            .build();
   }
 
   @Test
@@ -53,7 +59,7 @@ class AuthenticationServiceTest {
 
     when(passwordEncoder.matches("123", "encoded")).thenReturn(true);
 
-    AuthenticationResponse response = authenticationService.Authenticated(request);
+    AuthenticationResponse response = authenticationService.authenticate(request);
 
     assertTrue(response.isAuthenticated());
     assertNotNull(response.getToken());
@@ -67,7 +73,9 @@ class AuthenticationServiceTest {
 
     when(userRepository.findByUsername("admin")).thenReturn(Optional.empty());
 
-    assertThrows(AppException.class, () -> authenticationService.Authenticated(request));
+    var exception =
+        assertThrows(AppException.class, () -> authenticationService.authenticate(request));
+    assertEquals(ErrorCode.LOGIN_FAILED, exception.getErrorCode());
   }
 
   @Test
@@ -81,6 +89,6 @@ class AuthenticationServiceTest {
 
     when(passwordEncoder.matches("123", "encoded")).thenReturn(false);
 
-    assertThrows(AppException.class, () -> authenticationService.Authenticated(request));
+    assertThrows(AppException.class, () -> authenticationService.authenticate(request));
   }
 }

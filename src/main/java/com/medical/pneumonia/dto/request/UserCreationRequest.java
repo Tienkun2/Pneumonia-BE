@@ -20,5 +20,10 @@ public class UserCreationRequest {
 
   String email;
 
+  String displayName;
+
+  @com.medical.pneumonia.validator.DobConstraint(min = 18, message = "DOB_INVALID")
+  java.time.LocalDate dob;
+
   List<String> roles;
 }

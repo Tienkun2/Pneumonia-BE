@@ -17,7 +17,10 @@ import lombok.experimental.FieldDefaults;
 public class UserUpdateRequest {
   String username;
   String displayName;
+
+  @com.medical.pneumonia.validator.DobConstraint(min = 18, message = "DOB_INVALID")
   LocalDate dob;
+
   String email;
   String phoneNumber;
   String status;

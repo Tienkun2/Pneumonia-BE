@@ -1,0 +1,4 @@
+[35m@:src/main/java/com/medical/pneumonia/configuration/CloudinaryConfig.java[m[36m:[m  @Value("${cloudinary.[1;31mapi-key[m}")
+[35m@:src/main/java/com/medical/pneumonia/service/EmailService.java[m[36m:[m  public EmailService(@Value("${resend.[1;31mapi-key[m}") String apiKey) {
+[35m@:src/main/resources/application-prod.yaml[m[36m:[m  [1;31mapi-key[m: ${RESEND_API_KEY}
+[35m@:src/main/resources/application-prod.yaml[m[36m:[m  [1;31mapi-key[m: ${CLOUDINARY_API_KEY}

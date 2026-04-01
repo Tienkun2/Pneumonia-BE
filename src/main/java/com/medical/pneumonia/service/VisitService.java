@@ -75,6 +75,16 @@ public class VisitService {
     Pageable pageable = PageRequest.of(page - 1, size);
     var pageData = visitRepository.findAll(pageable);
 
+    List<String> visitIds = pageData.getContent().stream().map(Visit::getId).toList();
+
+    var imagesMap =
+        medicalImageRepository.findAllByVisitIdIn(visitIds).stream()
+            .collect(java.util.stream.Collectors.groupingBy(img -> img.getVisit().getId()));
+
+    var diagnosesMap =
+        diagnosisRepository.findAllByVisitIdIn(visitIds).stream()
+            .collect(java.util.stream.Collectors.groupingBy(diag -> diag.getVisit().getId()));
+
     return PageResponse.<VisitResponse>builder()
         .currentPage(page)
         .pageSize(pageData.getSize())
@@ -87,10 +97,10 @@ public class VisitService {
                       VisitResponse response = visitMapper.toVisitResponse(visit);
                       response.setMedicalImages(
                           medicalImageMapper.toMedicalImageResponse(
-                              medicalImageRepository.findByVisitId(visit.getId())));
+                              imagesMap.getOrDefault(visit.getId(), java.util.List.of())));
                       response.setDiagnoses(
                           diagnosisMapper.toDiagnosisResponse(
-                              diagnosisRepository.findByVisitId(visit.getId())));
+                              diagnosesMap.getOrDefault(visit.getId(), java.util.List.of())));
                       return response;
                     })
                 .toList())
@@ -104,16 +114,26 @@ public class VisitService {
       throw new AppException(ErrorCode.PATIENT_NOT_FOUND);
     }
     List<Visit> visits = visitRepository.findByPatientId(patientId);
+    List<String> visitIds = visits.stream().map(Visit::getId).toList();
+
+    var imagesMap =
+        medicalImageRepository.findAllByVisitIdIn(visitIds).stream()
+            .collect(java.util.stream.Collectors.groupingBy(img -> img.getVisit().getId()));
+
+    var diagnosesMap =
+        diagnosisRepository.findAllByVisitIdIn(visitIds).stream()
+            .collect(java.util.stream.Collectors.groupingBy(diag -> diag.getVisit().getId()));
+
     return visits.stream()
         .map(
             visit -> {
               VisitResponse response = visitMapper.toVisitResponse(visit);
               response.setMedicalImages(
                   medicalImageMapper.toMedicalImageResponse(
-                      medicalImageRepository.findByVisitId(visit.getId())));
+                      imagesMap.getOrDefault(visit.getId(), java.util.List.of())));
               response.setDiagnoses(
                   diagnosisMapper.toDiagnosisResponse(
-                      diagnosisRepository.findByVisitId(visit.getId())));
+                      diagnosesMap.getOrDefault(visit.getId(), java.util.List.of())));
               return response;
             })
         .toList();

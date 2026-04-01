@@ -1,5 +1,6 @@
 package com.medical.pneumonia.service;
 
+import com.medical.pneumonia.constant.UserStatus;
 import com.medical.pneumonia.dto.request.AuthenticationRequest;
 import com.medical.pneumonia.dto.request.IntrospectRequest;
 import com.medical.pneumonia.dto.request.LogoutRequest;
@@ -49,15 +50,15 @@ public class AuthenticationService {
 
   @NonFinal
   @Value("${jwt.signerKey}")
-  protected String SINGER_KEY;
+  protected String signerKey;
 
   @NonFinal
   @Value("${jwt.valid-duration}")
-  protected long VALID_DURATION;
+  protected long validDuration;
 
   @NonFinal
   @Value("${jwt.refreshable-duration}")
-  protected long REFRESH_DURATION;
+  protected long refreshDuration;
 
   public IntrospectResponse introspect(IntrospectRequest request) {
     try {
@@ -87,7 +88,7 @@ public class AuthenticationService {
 
     SignedJWT signedJWT = SignedJWT.parse(token);
 
-    JWSVerifier verifier = new MACVerifier(SINGER_KEY.getBytes());
+    JWSVerifier verifier = new MACVerifier(signerKey.getBytes());
 
     boolean verified = signedJWT.verify(verifier);
 
@@ -102,7 +103,7 @@ public class AuthenticationService {
                     .getJWTClaimsSet()
                     .getIssueTime()
                     .toInstant()
-                    .plus(REFRESH_DURATION, ChronoUnit.SECONDS)
+                    .plus(refreshDuration, ChronoUnit.SECONDS)
                     .toEpochMilli())
             : signedJWT.getJWTClaimsSet().getExpirationTime();
 
@@ -142,19 +143,28 @@ public class AuthenticationService {
             .findByUsername(username)
             .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
+    if (!com.medical.pneumonia.constant.UserStatus.ACTIVE.equals(user.getStatus())) {
+      throw new AppException(ErrorCode.USER_NOT_ACTIVE);
+    }
+
     var token = generateToken(user);
 
     return AuthenticationResponse.builder().token(token).authenticated(true).build();
   }
 
-  public AuthenticationResponse Authenticated(AuthenticationRequest request) {
+  public AuthenticationResponse authenticate(AuthenticationRequest request) {
     var user =
         userRepository
             .findByUsername(request.getUsername())
-            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+            .orElseThrow(() -> new AppException(ErrorCode.LOGIN_FAILED));
+
+    if (!UserStatus.ACTIVE.equals(user.getStatus())) {
+      throw new AppException(ErrorCode.USER_NOT_ACTIVE);
+    }
+
     boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
     if (!authenticated) {
-      throw new AppException(ErrorCode.UNAUTHENTICATED);
+      throw new AppException(ErrorCode.LOGIN_FAILED);
     }
     String token = generateToken(user);
     return AuthenticationResponse.builder().token(token).authenticated(true).build();
@@ -169,7 +179,7 @@ public class AuthenticationService {
             .issuer("medical-pneumonia")
             .issueTime(new Date(System.currentTimeMillis()))
             .expirationTime(
-                new Date(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
+                new Date(Instant.now().plus(validDuration, ChronoUnit.SECONDS).toEpochMilli()))
             // Security read role by scope
             .jwtID(UUID.randomUUID().toString())
             .claim("scope", buildScope(user))
@@ -180,10 +190,10 @@ public class AuthenticationService {
     JWSObject jwsObject = new JWSObject(header, payload);
 
     try {
-      jwsObject.sign(new MACSigner(SINGER_KEY.getBytes()));
+      jwsObject.sign(new MACSigner(signerKey.getBytes()));
       return jwsObject.serialize();
     } catch (JOSEException e) {
-      throw new RuntimeException(e);
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
   }
 

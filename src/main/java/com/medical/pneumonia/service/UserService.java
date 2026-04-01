@@ -71,6 +71,11 @@ public class UserService {
 
     User user = userMapper.toUser(request);
 
+    if (request.getDob() != null
+        && request.getDob().plusYears(18).isAfter(java.time.LocalDate.now())) {
+      throw new AppException(ErrorCode.DOB_INVALID);
+    }
+
     Role role =
         roleRepository
             .findById("USER")
@@ -112,10 +117,12 @@ public class UserService {
         .build();
   }
 
+  @PreAuthorize("hasAuthority('ROLE_ADMIN') or #id == authentication.principal.getClaim('sub')")
   public UserResponse getUserById(String id) {
     return userMapper.toUserResponse(getUserEntity(id));
   }
 
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public void deleteUser(String id) {
     userRepository.delete(getUserEntity(id));
   }

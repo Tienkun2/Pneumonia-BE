@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DiagnosisRepository extends JpaRepository<Diagnosis, String> {
   List<Diagnosis> findByVisitId(String visitId);
+
+  List<Diagnosis> findAllByVisitIdIn(List<String> visitIds);
 }

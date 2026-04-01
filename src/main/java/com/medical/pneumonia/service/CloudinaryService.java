@@ -2,6 +2,8 @@ package com.medical.pneumonia.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.medical.pneumonia.exception.AppException;
+import com.medical.pneumonia.exception.ErrorCode;
 import java.io.IOException;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -18,12 +20,20 @@ public class CloudinaryService {
   Cloudinary cloudinary;
 
   public Map<?, ?> upload(MultipartFile file) {
+    String contentType = file.getContentType();
+    if (contentType == null
+        || !(contentType.equals("image/jpeg")
+            || contentType.equals("image/png")
+            || contentType.equals("image/webp"))) {
+      throw new AppException(ErrorCode.IMAGE_INVALID_TYPE);
+    }
+
     try {
       return this.cloudinary
           .uploader()
           .upload(file.getBytes(), ObjectUtils.asMap("folder", "pneumonia-images"));
     } catch (IOException io) {
-      throw new RuntimeException("Image upload failed", io);
+      throw new AppException(ErrorCode.UPLOAD_FAILED);
     }
   }
 
@@ -31,7 +41,7 @@ public class CloudinaryService {
     try {
       this.cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
     } catch (IOException io) {
-      throw new RuntimeException("Image delete failed", io);
+      throw new AppException(ErrorCode.UPLOAD_FAILED);
     }
   }
 }

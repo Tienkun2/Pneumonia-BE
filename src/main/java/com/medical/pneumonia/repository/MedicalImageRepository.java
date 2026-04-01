@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MedicalImageRepository extends JpaRepository<MedicalImage, String> {
   List<MedicalImage> findByVisitId(String visitId);
+
+  List<MedicalImage> findAllByVisitIdIn(List<String> visitIds);
 }
