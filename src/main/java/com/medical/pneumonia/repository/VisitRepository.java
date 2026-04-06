@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface VisitRepository extends JpaRepository<Visit, String> {
-  List<Visit> findByPatientId(String patientId);
+  List<Visit> findByPatientIdOrderByVisitDateDesc(String patientId);
 }

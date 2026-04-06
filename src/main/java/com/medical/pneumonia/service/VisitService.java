@@ -1,6 +1,7 @@
 package com.medical.pneumonia.service;
 
 import com.medical.pneumonia.dto.request.MedicalImageCreationRequest;
+import com.medical.pneumonia.dto.request.SaveDiagnosisHistoryRequest;
 import com.medical.pneumonia.dto.request.VisitCreationRequest;
 import com.medical.pneumonia.dto.request.VisitUpdateRequest;
 import com.medical.pneumonia.dto.response.DiagnosisResponse;
@@ -32,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,7 @@ public class VisitService {
   MedicalImageRepository medicalImageRepository;
   DiagnosisRepository diagnosisRepository;
   NotificationService notificationService;
+  CloudinaryService cloudinaryService;
 
   VisitMapper visitMapper;
   MedicalImageMapper medicalImageMapper;
@@ -113,7 +116,7 @@ public class VisitService {
     if (!patientRepository.existsById(patientId)) {
       throw new AppException(ErrorCode.PATIENT_NOT_FOUND);
     }
-    List<Visit> visits = visitRepository.findByPatientId(patientId);
+    List<Visit> visits = visitRepository.findByPatientIdOrderByVisitDateDesc(patientId);
     List<String> visitIds = visits.stream().map(Visit::getId).toList();
 
     var imagesMap =
@@ -206,5 +209,85 @@ public class VisitService {
     Visit visit =
         visitRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.VISIT_NOT_FOUND));
     visitRepository.delete(visit);
+  }
+
+  @Transactional
+  @PreAuthorize(
+      "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
+  public VisitResponse saveDiagnosisHistory(SaveDiagnosisHistoryRequest request) {
+    Patient patient =
+        patientRepository
+            .findById(request.getPatientId())
+            .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+
+    Visit visit =
+        Visit.builder()
+            .patient(patient)
+            .symptoms(request.getSymptoms())
+            .note(request.getNote())
+            .visitDate(Instant.now())
+            .build();
+
+    var context = SecurityContextHolder.getContext();
+    if (context != null && context.getAuthentication() != null) {
+      visit.setCreatedBy(context.getAuthentication().getName());
+    }
+
+    visit = visitRepository.save(visit);
+
+    MedicalImage image = null;
+    if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
+      String imageUrl = request.getImageUrl();
+
+      if (imageUrl.startsWith("data:image/")) {
+        var uploadResult = cloudinaryService.upload(imageUrl);
+        if (uploadResult != null && uploadResult.containsKey("secure_url")) {
+          imageUrl = uploadResult.get("secure_url").toString();
+        } else if (uploadResult != null && uploadResult.containsKey("url")) {
+          imageUrl = uploadResult.get("url").toString();
+        }
+      }
+
+      image =
+          MedicalImage.builder()
+              .visit(visit)
+              .imageUrl(imageUrl)
+              .type(
+                  request.getImageType() != null
+                      ? request.getImageType()
+                      : com.medical.pneumonia.enums.ImageType.XRAY)
+              .uploadedAt(Instant.now())
+              .build();
+      image = medicalImageRepository.save(image);
+    }
+
+    Diagnosis diagnosis = null;
+    if (request.getResult() != null) {
+      diagnosis =
+          Diagnosis.builder()
+              .visit(visit)
+              .result(request.getResult())
+              .confidenceScore(request.getConfidenceScore())
+              .modelVersion(request.getModelVersion())
+              .doctorConfirm(false)
+              .createdAt(Instant.now())
+              .build();
+      diagnosis = diagnosisRepository.save(diagnosis);
+    }
+
+    VisitResponse response = visitMapper.toVisitResponse(visit);
+    if (image != null) {
+      response.setMedicalImages(List.of(medicalImageMapper.toMedicalImageResponse(image)));
+    } else {
+      response.setMedicalImages(List.of());
+    }
+
+    if (diagnosis != null) {
+      response.setDiagnoses(List.of(diagnosisMapper.toDiagnosisResponse(diagnosis)));
+    } else {
+      response.setDiagnoses(List.of());
+    }
+
+    return response;
   }
 }

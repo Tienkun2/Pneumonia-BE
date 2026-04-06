@@ -35,7 +35,7 @@ public class MedicalImage {
   @JoinColumn(name = "visit_id", nullable = false)
   Visit visit;
 
-  @Column(nullable = false, length = 1000)
+  @Column(nullable = false, columnDefinition = "TEXT")
   String imageUrl;
 
   @Enumerated(EnumType.STRING)

@@ -37,6 +37,16 @@ public class CloudinaryService {
     }
   }
 
+  public Map<?, ?> upload(String base64Content) {
+    try {
+      return this.cloudinary
+          .uploader()
+          .upload(base64Content, ObjectUtils.asMap("folder", "pneumonia-images"));
+    } catch (IOException io) {
+      throw new AppException(ErrorCode.UPLOAD_FAILED);
+    }
+  }
+
   public void delete(String publicId) {
     try {
       this.cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());

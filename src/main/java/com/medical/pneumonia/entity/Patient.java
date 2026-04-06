@@ -8,9 +8,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,4 +50,10 @@ public class Patient {
   String address;
 
   Instant createdAt;
+
+  @OneToMany(
+      mappedBy = "patient",
+      cascade = jakarta.persistence.CascadeType.ALL,
+      orphanRemoval = true)
+  List<Visit> visits;
 }

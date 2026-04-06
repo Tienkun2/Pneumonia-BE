@@ -2,6 +2,7 @@ package com.medical.pneumonia.controller;
 
 import com.medical.pneumonia.dto.request.ApiResponse;
 import com.medical.pneumonia.dto.request.MedicalImageCreationRequest;
+import com.medical.pneumonia.dto.request.SaveDiagnosisHistoryRequest;
 import com.medical.pneumonia.dto.request.VisitCreationRequest;
 import com.medical.pneumonia.dto.request.VisitUpdateRequest;
 import com.medical.pneumonia.dto.response.DiagnosisResponse;
@@ -36,6 +37,15 @@ public class VisitController {
     return ApiResponse.<VisitResponse>builder()
         .message("Visit created successfully")
         .result(visitService.createVisit(request))
+        .build();
+  }
+
+  @PostMapping("/multimodal")
+  ApiResponse<VisitResponse> saveDiagnosisHistory(
+      @RequestBody @Valid SaveDiagnosisHistoryRequest request) {
+    return ApiResponse.<VisitResponse>builder()
+        .message("Diagnosis history saved successfully")
+        .result(visitService.saveDiagnosisHistory(request))
         .build();
   }
 
