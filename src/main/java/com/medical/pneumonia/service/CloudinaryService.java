@@ -4,22 +4,23 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
-import java.io.IOException;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CloudinaryService {
 
   Cloudinary cloudinary;
 
-  public Map<?, ?> upload(MultipartFile file) {
+  public Map<String, Object> upload(MultipartFile file) {
     String contentType = file.getContentType();
     if (contentType == null
         || !(contentType.equals("image/jpeg")
@@ -32,17 +33,19 @@ public class CloudinaryService {
       return this.cloudinary
           .uploader()
           .upload(file.getBytes(), ObjectUtils.asMap("folder", "pneumonia-images"));
-    } catch (IOException io) {
+    } catch (Exception e) {
+      log.error("Cloudinary upload error: ", e);
       throw new AppException(ErrorCode.UPLOAD_FAILED);
     }
   }
 
-  public Map<?, ?> upload(String base64Content) {
+  public Map<String, Object> upload(String base64Content) {
     try {
       return this.cloudinary
           .uploader()
           .upload(base64Content, ObjectUtils.asMap("folder", "pneumonia-images"));
-    } catch (IOException io) {
+    } catch (Exception e) {
+      log.error("Cloudinary upload error: ", e);
       throw new AppException(ErrorCode.UPLOAD_FAILED);
     }
   }
@@ -50,7 +53,8 @@ public class CloudinaryService {
   public void delete(String publicId) {
     try {
       this.cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-    } catch (IOException io) {
+    } catch (Exception e) {
+      log.error("Cloudinary delete error: ", e);
       throw new AppException(ErrorCode.UPLOAD_FAILED);
     }
   }
