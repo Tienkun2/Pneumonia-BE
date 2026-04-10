@@ -2,6 +2,8 @@ package com.medical.pneumonia.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -17,13 +19,25 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "permissions")
-public class Permission {
-  @Id String name;
-  String description;
+@Table(name = "menus")
+public class Menu {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  Long id;
 
-  @Column(name = "parent_name")
-  String parentName;
+  @Column(nullable = false)
+  String title;
 
-  Integer level;
+  String icon;
+
+  String url;
+
+  @Column(name = "parent_id")
+  Long parentId;
+
+  @Column(name = "permission_code")
+  String permissionCode;
+
+  @Column(name = "sort_order")
+  Integer sortOrder;
 }

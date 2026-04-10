@@ -2,19 +2,15 @@ package com.medical.pneumonia.controller;
 
 import com.medical.pneumonia.dto.request.ApiResponse;
 import com.medical.pneumonia.dto.request.PermissionCreationRequest;
+import com.medical.pneumonia.dto.request.PermissionUpdateRequest;
 import com.medical.pneumonia.dto.response.PermissionResponse;
+import com.medical.pneumonia.dto.response.PermissionTreeResponse;
 import com.medical.pneumonia.service.PermissionService;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
@@ -40,7 +36,21 @@ public class PermissionController {
         .build();
   }
 
-  @GetMapping("/{name}")
+  @GetMapping("/roots")
+  ApiResponse<List<PermissionResponse>> getRoots() {
+    return ApiResponse.<List<PermissionResponse>>builder()
+        .result(permissionService.getRoots())
+        .build();
+  }
+
+  @GetMapping("/children/{parentName}")
+  ApiResponse<List<PermissionResponse>> getChildren(@PathVariable String parentName) {
+    return ApiResponse.<List<PermissionResponse>>builder()
+        .result(permissionService.getChildren(parentName))
+        .build();
+  }
+
+  @GetMapping("/info/{name}")
   ApiResponse<PermissionResponse> getPermission(@PathVariable String name) {
     return ApiResponse.<PermissionResponse>builder()
         .result(permissionService.getPermission(name))
@@ -51,5 +61,22 @@ public class PermissionController {
   ApiResponse<Void> deletePermission(@PathVariable String name) {
     permissionService.deletePermission(name);
     return ApiResponse.<Void>builder().message("Delete permission successfully").build();
+  }
+
+  @PutMapping("/info/{name}")
+  ApiResponse<PermissionResponse> updatePermission(
+      @PathVariable String name, @RequestBody PermissionUpdateRequest request) {
+    return ApiResponse.<PermissionResponse>builder()
+        .message("Update permission successfully")
+        .result(permissionService.updatePermission(name, request))
+        .build();
+  }
+
+  @GetMapping("/tree")
+  ApiResponse<List<PermissionTreeResponse>> getPermissionTree(@RequestParam String roleName) {
+    return ApiResponse.<List<PermissionTreeResponse>>builder()
+        .message("Get permission tree successfully")
+        .result(permissionService.getPermissionTree(roleName))
+        .build();
   }
 }

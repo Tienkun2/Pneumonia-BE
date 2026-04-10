@@ -1,5 +1,7 @@
 package com.medical.pneumonia.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,12 +11,15 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PermissionResponse {
-  String name;
-  String description;
-  String parentName;
-  Integer level;
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
+public class MenuResponse {
+  Long id;
+  String title;
+  String icon;
+  String url;
+  String permissionCode;
+  List<MenuResponse> items;
 }

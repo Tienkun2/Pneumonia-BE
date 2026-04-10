@@ -16,6 +16,6 @@ import lombok.experimental.FieldDefaults;
 public class RoleCreationRequest {
   String name;
   String description;
-
+  String status;
   Set<String> permissions;
 }

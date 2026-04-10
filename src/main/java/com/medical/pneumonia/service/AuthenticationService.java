@@ -13,12 +13,7 @@ import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.repository.InvalidTokenRepository;
 import com.medical.pneumonia.repository.UserRepository;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSObject;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -62,11 +57,8 @@ public class AuthenticationService {
 
   public IntrospectResponse introspect(IntrospectRequest request) {
     try {
-
       verifyToken(request.getToken(), false);
-
       return IntrospectResponse.builder().valid(true).build();
-
     } catch (Exception e) {
       return IntrospectResponse.builder().valid(false).build();
     }
@@ -75,21 +67,15 @@ public class AuthenticationService {
   public void logout(LogoutRequest request) throws JOSEException, ParseException {
     var signToken = verifyToken(request.getToken(), false);
     String jit = signToken.getJWTClaimsSet().getJWTID();
-
     Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
-
     InvalidToken invalidToken = InvalidToken.builder().id(jit).expiryTime(expiryTime).build();
-
     invalidTokenRepository.save(invalidToken);
   }
 
   private SignedJWT verifyToken(String token, boolean isRefresh)
       throws JOSEException, ParseException {
-
     SignedJWT signedJWT = SignedJWT.parse(token);
-
     JWSVerifier verifier = new MACVerifier(signerKey.getBytes());
-
     boolean verified = signedJWT.verify(verifier);
 
     if (!verified) {
@@ -112,7 +98,6 @@ public class AuthenticationService {
     }
 
     String jit = signedJWT.getJWTClaimsSet().getJWTID();
-
     if (invalidTokenRepository.existsById(jit)) {
       throw new AppException(ErrorCode.UNAUTHENTICATED);
     }
@@ -123,7 +108,6 @@ public class AuthenticationService {
   public AuthenticationResponse refreshToken(RefreshRequest request)
       throws JOSEException, ParseException {
     var signedJwt = verifyToken(request.getToken(), true);
-
     var jit = signedJwt.getJWTClaimsSet().getJWTID();
 
     if (invalidTokenRepository.existsById(jit)) {
@@ -131,13 +115,10 @@ public class AuthenticationService {
     }
 
     var expiryTime = signedJwt.getJWTClaimsSet().getExpirationTime();
-
     InvalidToken invalidToken = InvalidToken.builder().id(jit).expiryTime(expiryTime).build();
-
     invalidTokenRepository.save(invalidToken);
 
     var username = signedJwt.getJWTClaimsSet().getSubject();
-
     var user =
         userRepository
             .findByUsername(username)
@@ -148,7 +129,6 @@ public class AuthenticationService {
     }
 
     var token = generateToken(user);
-
     return AuthenticationResponse.builder().token(token).authenticated(true).build();
   }
 
@@ -180,13 +160,11 @@ public class AuthenticationService {
             .issueTime(new Date(System.currentTimeMillis()))
             .expirationTime(
                 new Date(Instant.now().plus(validDuration, ChronoUnit.SECONDS).toEpochMilli()))
-            // Security read role by scope
             .jwtID(UUID.randomUUID().toString())
             .claim("scope", buildScope(user))
             .build();
 
     Payload payload = new Payload(jwtClaimsSet.toJSONObject());
-
     JWSObject jwsObject = new JWSObject(header, payload);
 
     try {

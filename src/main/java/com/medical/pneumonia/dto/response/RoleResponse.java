@@ -16,6 +16,7 @@ import lombok.experimental.FieldDefaults;
 public class RoleResponse {
   String name;
   String description;
+  String status;
 
   Set<PermissionResponse> permissions;
 }

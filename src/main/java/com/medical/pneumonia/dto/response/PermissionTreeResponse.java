@@ -1,20 +1,18 @@
 package com.medical.pneumonia.dto.response;
 
+import java.util.List;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PermissionResponse {
+public class PermissionTreeResponse {
   String name;
   String description;
-  String parentName;
-  Integer level;
+  int level;
+  boolean isChecked;
+  List<PermissionTreeResponse> children;
 }

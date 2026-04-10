@@ -21,7 +21,10 @@ import lombok.experimental.FieldDefaults;
 @Table(name = "roles")
 public class Role {
   @Id String name;
+
   String description;
+
+  String status; // ACTIVE, INACTIVE
 
   @ManyToMany Set<Permission> permissions;
 }
