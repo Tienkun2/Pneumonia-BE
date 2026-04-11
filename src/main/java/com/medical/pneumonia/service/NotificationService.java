@@ -32,7 +32,7 @@ public class NotificationService {
         Notification.builder()
             .recipientUsername(username)
             .content(content)
-            .isRead(false)
+            .read(false)
             .createdAt(Instant.now())
             .build();
     notificationRepository.save(notification);
@@ -48,7 +48,7 @@ public class NotificationService {
         Notification.builder()
             .recipientUsername("ALL")
             .content(content)
-            .isRead(false)
+            .read(false)
             .createdAt(Instant.now())
             .build();
     notificationRepository.save(notification);
@@ -80,7 +80,7 @@ public class NotificationService {
   public long countUnread() {
     String username = SecurityContextHolder.getContext().getAuthentication().getName();
     List<String> targets = List.of(username, "ALL");
-    return notificationRepository.countByRecipientUsernameInAndIsReadFalse(targets);
+    return notificationRepository.countByRecipientUsernameInAndReadFalse(targets);
   }
 
   /** Đánh dấu tất cả thông báo là đã đọc */
@@ -94,5 +94,17 @@ public class NotificationService {
   /** Đánh dấu 1 thông báo cụ thể là đã đọc theo ID */
   public void markOneAsRead(String id) {
     notificationRepository.markOneAsRead(id);
+  }
+
+  /** Xóa 1 thông báo theo ID */
+  public void deleteOne(String id) {
+    notificationRepository.deleteOne(id);
+  }
+
+  /** Xóa tất cả thông báo của User hiện tại */
+  public void deleteAll() {
+    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+    List<String> targets = List.of(username, "ALL");
+    notificationRepository.deleteAllByTargets(targets);
   }
 }

@@ -17,16 +17,26 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
   Page<Notification> findByRecipientUsernameInOrderByCreatedAtDesc(
       List<String> recipientUsernames, Pageable pageable);
 
-  long countByRecipientUsernameInAndIsReadFalse(List<String> recipientUsernames);
+  long countByRecipientUsernameInAndReadFalse(List<String> recipientUsernames);
 
   @Modifying
   @Transactional
   @Query(
-      "UPDATE Notification n SET n.isRead = true WHERE n.recipientUsername IN :usernames AND n.isRead = false")
+      "UPDATE Notification n SET n.read = true WHERE n.recipientUsername IN :usernames AND n.read = false")
   void markAllAsRead(@Param("usernames") List<String> usernames);
 
   @Modifying
   @Transactional
-  @Query("UPDATE Notification n SET n.isRead = true WHERE n.id = :id")
+  @Query("UPDATE Notification n SET n.read = true WHERE n.id = :id")
   void markOneAsRead(@Param("id") String id);
+
+  @Modifying
+  @Transactional
+  @Query("DELETE FROM Notification n WHERE n.id = :id")
+  void deleteOne(@Param("id") String id);
+
+  @Modifying
+  @Transactional
+  @Query("DELETE FROM Notification n WHERE n.recipientUsername IN :usernames")
+  void deleteAllByTargets(@Param("usernames") List<String> usernames);
 }

@@ -16,6 +16,6 @@ import lombok.experimental.FieldDefaults;
 public class NotificationResponse {
   String id;
   String content;
-  boolean isRead;
+  boolean read;
   Instant createdAt;
 }

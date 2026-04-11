@@ -51,4 +51,16 @@ public class NotificationController {
     notificationService.markOneAsRead(id);
     return ApiResponse.<Void>builder().message("Notification marked as read").build();
   }
+
+  @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+  ApiResponse<Void> deleteOne(@PathVariable String id) {
+    notificationService.deleteOne(id);
+    return ApiResponse.<Void>builder().message("Notification deleted successfully").build();
+  }
+
+  @org.springframework.web.bind.annotation.DeleteMapping
+  ApiResponse<Void> deleteAll() {
+    notificationService.deleteAll();
+    return ApiResponse.<Void>builder().message("All notifications deleted successfully").build();
+  }
 }
