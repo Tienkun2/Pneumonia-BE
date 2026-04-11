@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -38,32 +39,48 @@ public class MenuService {
             .findByUsername(username)
             .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-    // 1. Lấy tập hợp các quyền trực tiếp của User
-    Set<String> userDirectPermissions =
-        user.getRoles().stream()
-            .flatMap(role -> role.getPermissions().stream())
-            .map(Permission::getName)
-            .collect(Collectors.toSet());
+    boolean isAdmin = user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"));
 
-    // 2. Xây dựng bản đồ Cha -> Danh sách Con để truy vết nhanh
     List<Permission> allPermissions = permissionRepository.findAll();
-    Map<String, List<String>> childMap =
-        allPermissions.stream()
-            .filter(p -> p.getParentName() != null)
-            .collect(
-                Collectors.groupingBy(
-                    Permission::getParentName,
-                    Collectors.mapping(Permission::getName, Collectors.toList())));
+    Set<String> expandedPermissions;
 
-    // 3. Sử dụng thuật toán BFS để tìm toàn bộ quyền "con, cháu, chắt"
-    Set<String> expandedPermissions = new HashSet<>();
-    java.util.Queue<String> queue = new java.util.LinkedList<>(userDirectPermissions);
+    if (isAdmin) {
+      expandedPermissions =
+          allPermissions.stream().map(Permission::getName).collect(Collectors.toSet());
+    } else {
+      Set<String> userDirectPermissions =
+          user.getRoles().stream()
+              .flatMap(role -> role.getPermissions().stream())
+              .map(Permission::getName)
+              .collect(Collectors.toSet());
 
-    while (!queue.isEmpty()) {
-      String p = queue.poll();
-      if (expandedPermissions.add(p)) {
-        List<String> children = childMap.getOrDefault(p, java.util.Collections.emptyList());
-        queue.addAll(children);
+      Map<String, List<String>> childMap =
+          allPermissions.stream()
+              .filter(p -> p.getParentName() != null)
+              .collect(
+                  Collectors.groupingBy(
+                      Permission::getParentName,
+                      Collectors.mapping(Permission::getName, Collectors.toList())));
+
+      Map<String, String> parentMap =
+          allPermissions.stream()
+              .filter(p -> p.getParentName() != null)
+              .collect(Collectors.toMap(Permission::getName, Permission::getParentName, (a, b) -> a));
+
+      expandedPermissions = new HashSet<>();
+      java.util.Queue<String> queue = new java.util.LinkedList<>(userDirectPermissions);
+
+      while (!queue.isEmpty()) {
+        String p = queue.poll();
+        if (expandedPermissions.add(p)) {
+          // Expand downwards
+          queue.addAll(childMap.getOrDefault(p, java.util.Collections.emptyList()));
+          // Expand upwards
+          String parent = parentMap.get(p);
+          if (parent != null) {
+            queue.add(parent);
+          }
+        }
       }
     }
 
@@ -87,33 +104,29 @@ public class MenuService {
   }
 
   private List<MenuResponse> buildMenuTree(List<Menu> menus) {
-    Map<Long, List<Menu>> childrenMap =
-        menus.stream()
-            .filter(m -> m.getParentId() != null)
-            .collect(Collectors.groupingBy(Menu::getParentId));
+    Map<Long, List<Menu>> childrenMap = menus.stream()
+        .filter(m -> m.getParentId() != null)
+        .collect(Collectors.groupingBy(Menu::getParentId));
 
     List<Menu> rootMenus = menus.stream().filter(m -> m.getParentId() == null).toList();
 
     return rootMenus.stream()
         .map(menu -> mapToMenuResponse(menu, childrenMap))
         .filter(
-            response ->
-                response.getUrl() != null
-                    || (response.getItems() != null && !response.getItems().isEmpty()))
+            response -> response.getUrl() != null
+                || (response.getItems() != null && !response.getItems().isEmpty()))
         .collect(Collectors.toList());
   }
 
   private MenuResponse mapToMenuResponse(Menu menu, Map<Long, List<Menu>> childrenMap) {
     List<Menu> children = childrenMap.getOrDefault(menu.getId(), new ArrayList<>());
 
-    List<MenuResponse> items =
-        children.stream()
-            .map(child -> mapToMenuResponse(child, childrenMap))
-            .filter(
-                response ->
-                    response.getUrl() != null
-                        || (response.getItems() != null && !response.getItems().isEmpty()))
-            .collect(Collectors.toList());
+    List<MenuResponse> items = children.stream()
+        .map(child -> mapToMenuResponse(child, childrenMap))
+        .filter(
+            response -> response.getUrl() != null
+                || (response.getItems() != null && !response.getItems().isEmpty()))
+        .collect(Collectors.toList());
 
     return MenuResponse.builder()
         .id(menu.getId())
@@ -123,5 +136,10 @@ public class MenuService {
         .permissionCode(menu.getPermissionCode())
         .items(items.isEmpty() ? null : items)
         .build();
+  }
+
+  public String getCurrentUsername() {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    return authentication != null ? authentication.getName() : "anonymous";
   }
 }

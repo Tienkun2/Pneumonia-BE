@@ -24,13 +24,18 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "visits")
+@Table(
+    name = "visits",
+    indexes = {
+      @jakarta.persistence.Index(name = "idx_visit_patient_id", columnList = "patient_id"),
+      @jakarta.persistence.Index(name = "idx_visit_date", columnList = "visitDate")
+    })
 public class Visit {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @ManyToOne
+  @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
   @JoinColumn(name = "patient_id", nullable = false)
   Patient patient;
 

@@ -70,6 +70,7 @@ public class AuthenticationService {
     Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
     InvalidToken invalidToken = InvalidToken.builder().id(jit).expiryTime(expiryTime).build();
     invalidTokenRepository.save(invalidToken);
+    evictTokenCache(jit);
   }
 
   private SignedJWT verifyToken(String token, boolean isRefresh)
@@ -98,7 +99,7 @@ public class AuthenticationService {
     }
 
     String jit = signedJWT.getJWTClaimsSet().getJWTID();
-    if (invalidTokenRepository.existsById(jit)) {
+    if (isTokenInvalid(jit)) {
       throw new AppException(ErrorCode.UNAUTHENTICATED);
     }
 
@@ -117,6 +118,7 @@ public class AuthenticationService {
     var expiryTime = signedJwt.getJWTClaimsSet().getExpirationTime();
     InvalidToken invalidToken = InvalidToken.builder().id(jit).expiryTime(expiryTime).build();
     invalidTokenRepository.save(invalidToken);
+    evictTokenCache(jit);
 
     var username = signedJwt.getJWTClaimsSet().getSubject();
     var user =
@@ -173,6 +175,16 @@ public class AuthenticationService {
     } catch (JOSEException e) {
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
+  }
+
+  @org.springframework.cache.annotation.Cacheable(value = "tokenBlacklist", key = "#jit")
+  public boolean isTokenInvalid(String jit) {
+    return invalidTokenRepository.existsById(jit);
+  }
+
+  @org.springframework.cache.annotation.CacheEvict(value = "tokenBlacklist", key = "#jit")
+  public void evictTokenCache(String jit) {
+    // Purposefully empty, just for cache eviction
   }
 
   private String buildScope(User user) {

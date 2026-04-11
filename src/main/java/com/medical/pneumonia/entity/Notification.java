@@ -20,7 +20,14 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "notifications")
+@Table(
+    name = "notifications",
+    indexes = {
+      @jakarta.persistence.Index(
+          name = "idx_noti_recipient_created",
+          columnList = "recipientUsername, createdAt"),
+      @jakarta.persistence.Index(name = "idx_noti_is_read", columnList = "isRead")
+    })
 public class Notification {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

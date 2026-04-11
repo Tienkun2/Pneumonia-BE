@@ -33,7 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +50,7 @@ public class VisitService {
   VisitMapper visitMapper;
   MedicalImageMapper medicalImageMapper;
   DiagnosisMapper diagnosisMapper;
+  TransactionTemplate transactionTemplate;
 
   @PreAuthorize(
       "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
@@ -211,83 +212,88 @@ public class VisitService {
     visitRepository.delete(visit);
   }
 
-  @Transactional
   @PreAuthorize(
       "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
   public VisitResponse saveDiagnosisHistory(SaveDiagnosisHistoryRequest request) {
-    Patient patient =
-        patientRepository
-            .findById(request.getPatientId())
-            .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+    String finalImageUrl = request.getImageUrl();
 
-    Visit visit =
-        Visit.builder()
-            .patient(patient)
-            .symptoms(request.getSymptoms())
-            .note(request.getNote())
-            .visitDate(Instant.now())
-            .build();
-
-    var context = SecurityContextHolder.getContext();
-    if (context != null && context.getAuthentication() != null) {
-      visit.setCreatedBy(context.getAuthentication().getName());
-    }
-
-    visit = visitRepository.save(visit);
-
-    MedicalImage image = null;
-    if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
-      String imageUrl = request.getImageUrl();
-
-      if (imageUrl.startsWith("data:image/")) {
-        var uploadResult = cloudinaryService.upload(imageUrl);
-        if (uploadResult != null && uploadResult.containsKey("secure_url")) {
-          imageUrl = uploadResult.get("secure_url").toString();
-        } else if (uploadResult != null && uploadResult.containsKey("url")) {
-          imageUrl = uploadResult.get("url").toString();
-        }
+    // Perform Cloudinary upload outside of @Transactional
+    if (finalImageUrl != null && finalImageUrl.startsWith("data:image/")) {
+      var uploadResult = cloudinaryService.upload(finalImageUrl);
+      if (uploadResult != null && uploadResult.containsKey("secure_url")) {
+        finalImageUrl = uploadResult.get("secure_url").toString();
+      } else if (uploadResult != null && uploadResult.containsKey("url")) {
+        finalImageUrl = uploadResult.get("url").toString();
       }
-
-      image =
-          MedicalImage.builder()
-              .visit(visit)
-              .imageUrl(imageUrl)
-              .type(
-                  request.getImageType() != null
-                      ? request.getImageType()
-                      : com.medical.pneumonia.enums.ImageType.XRAY)
-              .uploadedAt(Instant.now())
-              .build();
-      image = medicalImageRepository.save(image);
     }
 
-    Diagnosis diagnosis = null;
-    if (request.getResult() != null) {
-      diagnosis =
-          Diagnosis.builder()
-              .visit(visit)
-              .result(request.getResult())
-              .confidenceScore(request.getConfidenceScore())
-              .modelVersion(request.getModelVersion())
-              .doctorConfirm(false)
-              .createdAt(Instant.now())
-              .build();
-      diagnosis = diagnosisRepository.save(diagnosis);
-    }
+    final String imageUrlToSave = finalImageUrl;
 
-    VisitResponse response = visitMapper.toVisitResponse(visit);
-    if (image != null) {
-      response.setMedicalImages(List.of(medicalImageMapper.toMedicalImageResponse(image)));
-    } else {
-      response.setMedicalImages(List.of());
-    }
+    return transactionTemplate.execute(
+        status -> {
+          Patient patient =
+              patientRepository
+                  .findById(request.getPatientId())
+                  .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-    if (diagnosis != null) {
-      response.setDiagnoses(List.of(diagnosisMapper.toDiagnosisResponse(diagnosis)));
-    } else {
-      response.setDiagnoses(List.of());
-    }
+          Visit visit =
+              Visit.builder()
+                  .patient(patient)
+                  .symptoms(request.getSymptoms())
+                  .note(request.getNote())
+                  .visitDate(Instant.now())
+                  .build();
 
-    return response;
+          var context = SecurityContextHolder.getContext();
+          if (context != null && context.getAuthentication() != null) {
+            visit.setCreatedBy(context.getAuthentication().getName());
+          }
+
+          Visit savedVisit = visitRepository.save(visit);
+
+          MedicalImage image = null;
+          if (imageUrlToSave != null && !imageUrlToSave.isEmpty()) {
+            image =
+                MedicalImage.builder()
+                    .visit(savedVisit)
+                    .imageUrl(imageUrlToSave)
+                    .type(
+                        request.getImageType() != null
+                            ? request.getImageType()
+                            : com.medical.pneumonia.enums.ImageType.XRAY)
+                    .uploadedAt(Instant.now())
+                    .build();
+            image = medicalImageRepository.save(image);
+          }
+
+          Diagnosis diagnosis = null;
+          if (request.getResult() != null) {
+            diagnosis =
+                Diagnosis.builder()
+                    .visit(savedVisit)
+                    .result(request.getResult())
+                    .confidenceScore(request.getConfidenceScore())
+                    .modelVersion(request.getModelVersion())
+                    .doctorConfirm(false)
+                    .createdAt(Instant.now())
+                    .build();
+            diagnosis = diagnosisRepository.save(diagnosis);
+          }
+
+          VisitResponse response = visitMapper.toVisitResponse(savedVisit);
+          if (image != null) {
+            response.setMedicalImages(List.of(medicalImageMapper.toMedicalImageResponse(image)));
+          } else {
+            response.setMedicalImages(List.of());
+          }
+
+          if (diagnosis != null) {
+            response.setDiagnoses(List.of(diagnosisMapper.toDiagnosisResponse(diagnosis)));
+          } else {
+            response.setDiagnoses(List.of());
+          }
+
+          return response;
+        });
   }
 }
