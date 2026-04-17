@@ -17,8 +17,10 @@ public interface VisitMapper {
   Visit toVisit(VisitCreationRequest request);
 
   @Mapping(source = "patient.id", target = "patientId")
+  @Mapping(source = "patient.fullName", target = "patientName")
   @Mapping(target = "medicalImages", ignore = true)
   @Mapping(target = "diagnoses", ignore = true)
+  @Mapping(target = "diagnosisResult", ignore = true)
   VisitResponse toVisitResponse(Visit visit);
 
   List<VisitResponse> toVisitResponse(List<Visit> visits);

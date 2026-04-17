@@ -13,10 +13,12 @@ import lombok.experimental.FieldDefaults;
 public class VisitResponse {
   String id;
   String patientId;
+  String patientName;
   Instant visitDate;
   String symptoms;
   String note;
   String createdBy;
+  String diagnosisResult;
   List<MedicalImageResponse> medicalImages;
   List<DiagnosisResponse> diagnoses;
 }

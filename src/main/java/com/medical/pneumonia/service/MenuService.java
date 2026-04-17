@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -65,7 +64,8 @@ public class MenuService {
       Map<String, String> parentMap =
           allPermissions.stream()
               .filter(p -> p.getParentName() != null)
-              .collect(Collectors.toMap(Permission::getName, Permission::getParentName, (a, b) -> a));
+              .collect(
+                  Collectors.toMap(Permission::getName, Permission::getParentName, (a, b) -> a));
 
       expandedPermissions = new HashSet<>();
       java.util.Queue<String> queue = new java.util.LinkedList<>(userDirectPermissions);
@@ -104,29 +104,33 @@ public class MenuService {
   }
 
   private List<MenuResponse> buildMenuTree(List<Menu> menus) {
-    Map<Long, List<Menu>> childrenMap = menus.stream()
-        .filter(m -> m.getParentId() != null)
-        .collect(Collectors.groupingBy(Menu::getParentId));
+    Map<Long, List<Menu>> childrenMap =
+        menus.stream()
+            .filter(m -> m.getParentId() != null)
+            .collect(Collectors.groupingBy(Menu::getParentId));
 
     List<Menu> rootMenus = menus.stream().filter(m -> m.getParentId() == null).toList();
 
     return rootMenus.stream()
         .map(menu -> mapToMenuResponse(menu, childrenMap))
         .filter(
-            response -> response.getUrl() != null
-                || (response.getItems() != null && !response.getItems().isEmpty()))
+            response ->
+                response.getUrl() != null
+                    || (response.getItems() != null && !response.getItems().isEmpty()))
         .collect(Collectors.toList());
   }
 
   private MenuResponse mapToMenuResponse(Menu menu, Map<Long, List<Menu>> childrenMap) {
     List<Menu> children = childrenMap.getOrDefault(menu.getId(), new ArrayList<>());
 
-    List<MenuResponse> items = children.stream()
-        .map(child -> mapToMenuResponse(child, childrenMap))
-        .filter(
-            response -> response.getUrl() != null
-                || (response.getItems() != null && !response.getItems().isEmpty()))
-        .collect(Collectors.toList());
+    List<MenuResponse> items =
+        children.stream()
+            .map(child -> mapToMenuResponse(child, childrenMap))
+            .filter(
+                response ->
+                    response.getUrl() != null
+                        || (response.getItems() != null && !response.getItems().isEmpty()))
+            .collect(Collectors.toList());
 
     return MenuResponse.builder()
         .id(menu.getId())

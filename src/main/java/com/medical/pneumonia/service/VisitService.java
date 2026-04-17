@@ -77,49 +77,20 @@ public class VisitService {
       "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
   public PageResponse<VisitResponse> getAllVisits(int page, int size) {
     Pageable pageable = PageRequest.of(page - 1, size);
-    var pageData = visitRepository.findAll(pageable);
+    var pageData = visitRepository.findByOrderByVisitDateDesc(pageable);
 
     List<String> visitIds = pageData.getContent().stream().map(Visit::getId).toList();
-
-    var imagesMap =
-        medicalImageRepository.findAllByVisitIdIn(visitIds).stream()
-            .collect(java.util.stream.Collectors.groupingBy(img -> img.getVisit().getId()));
-
-    var diagnosesMap =
-        diagnosisRepository.findAllByVisitIdIn(visitIds).stream()
-            .collect(java.util.stream.Collectors.groupingBy(diag -> diag.getVisit().getId()));
 
     return PageResponse.<VisitResponse>builder()
         .currentPage(page)
         .pageSize(pageData.getSize())
         .totalPages(pageData.getTotalPages())
         .totalElements(pageData.getTotalElements())
-        .data(
-            pageData.getContent().stream()
-                .map(
-                    visit -> {
-                      VisitResponse response = visitMapper.toVisitResponse(visit);
-                      response.setMedicalImages(
-                          medicalImageMapper.toMedicalImageResponse(
-                              imagesMap.getOrDefault(visit.getId(), java.util.List.of())));
-                      response.setDiagnoses(
-                          diagnosisMapper.toDiagnosisResponse(
-                              diagnosesMap.getOrDefault(visit.getId(), java.util.List.of())));
-                      return response;
-                    })
-                .toList())
+        .data(populateVisitResponses(pageData.getContent(), visitIds))
         .build();
   }
 
-  @PreAuthorize(
-      "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
-  public List<VisitResponse> getVisitsByPatientId(String patientId) {
-    if (!patientRepository.existsById(patientId)) {
-      throw new AppException(ErrorCode.PATIENT_NOT_FOUND);
-    }
-    List<Visit> visits = visitRepository.findByPatientIdOrderByVisitDateDesc(patientId);
-    List<String> visitIds = visits.stream().map(Visit::getId).toList();
-
+  public List<VisitResponse> populateVisitResponses(List<Visit> visits, List<String> visitIds) {
     var imagesMap =
         medicalImageRepository.findAllByVisitIdIn(visitIds).stream()
             .collect(java.util.stream.Collectors.groupingBy(img -> img.getVisit().getId()));
@@ -132,15 +103,32 @@ public class VisitService {
         .map(
             visit -> {
               VisitResponse response = visitMapper.toVisitResponse(visit);
+              var visitDiagnoses = diagnosesMap.getOrDefault(visit.getId(), java.util.List.of());
+
               response.setMedicalImages(
                   medicalImageMapper.toMedicalImageResponse(
                       imagesMap.getOrDefault(visit.getId(), java.util.List.of())));
-              response.setDiagnoses(
-                  diagnosisMapper.toDiagnosisResponse(
-                      diagnosesMap.getOrDefault(visit.getId(), java.util.List.of())));
+              response.setDiagnoses(diagnosisMapper.toDiagnosisResponse(visitDiagnoses));
+
+              if (!visitDiagnoses.isEmpty()) {
+                response.setDiagnosisResult(visitDiagnoses.get(0).getResult().name());
+              }
+
               return response;
             })
         .toList();
+  }
+
+  @PreAuthorize(
+      "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
+  public List<VisitResponse> getVisitsByPatientId(String patientId) {
+    if (!patientRepository.existsById(patientId)) {
+      throw new AppException(ErrorCode.PATIENT_NOT_FOUND);
+    }
+    List<Visit> visits = visitRepository.findByPatientIdOrderByVisitDateDesc(patientId);
+    List<String> visitIds = visits.stream().map(Visit::getId).toList();
+
+    return populateVisitResponses(visits, visitIds);
   }
 
   @PreAuthorize(
