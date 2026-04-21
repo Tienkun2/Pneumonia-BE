@@ -11,6 +11,9 @@ import com.medical.pneumonia.repository.DiagnosisRepository;
 import com.medical.pneumonia.repository.PatientRepository;
 import com.medical.pneumonia.repository.UserRepository;
 import com.medical.pneumonia.repository.VisitRepository;
+import com.medical.pneumonia.exception.AppException;
+import com.medical.pneumonia.exception.ErrorCode;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -69,7 +72,7 @@ public class DashboardService {
           .toList();
     } catch (Exception e) {
       log.error("Error generating visit trends", e);
-      return Collections.emptyList();
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
   }
 
@@ -82,7 +85,7 @@ public class DashboardService {
           .toList();
     } catch (Exception e) {
       log.error("Error calculating diagnosis stats", e);
-      return Collections.emptyList();
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
   }
 
@@ -97,7 +100,7 @@ public class DashboardService {
       return visitService.populateVisitResponses(page.getContent(), visitIds);
     } catch (Exception e) {
       log.error("Error fetching recent visits", e);
-      return Collections.emptyList();
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
   }
 
