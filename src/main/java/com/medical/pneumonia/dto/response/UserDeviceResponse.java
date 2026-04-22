@@ -1,8 +1,7 @@
 package com.medical.pneumonia.dto.response;
 
+import com.medical.pneumonia.enums.DeviceType;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,21 +10,18 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
+public class UserDeviceResponse {
   String id;
-  String username;
-  String displayName;
-  LocalDate dob;
-  String email;
-  String phoneNumber;
+  DeviceType deviceType;
+  String appName;
   String status;
-  Instant createdAt;
-  String avatar;
-  Set<RoleResponse> roles;
-  long deviceCount;
-  long sessionCount;
+  Instant lastAccess;
+  Instant firstAccess;
+  String ipAddress;
+  boolean remembered;
+  boolean current;
 }

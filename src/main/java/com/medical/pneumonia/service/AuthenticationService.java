@@ -9,6 +9,7 @@ import com.medical.pneumonia.dto.response.AuthenticationResponse;
 import com.medical.pneumonia.dto.response.IntrospectResponse;
 import com.medical.pneumonia.entity.InvalidToken;
 import com.medical.pneumonia.entity.User;
+import com.medical.pneumonia.entity.UserDevice;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.repository.InvalidTokenRepository;
@@ -42,6 +43,8 @@ public class AuthenticationService {
   UserRepository userRepository;
   InvalidTokenRepository invalidTokenRepository;
   PasswordEncoder passwordEncoder;
+  UserDeviceService userDeviceService;
+  UserSessionService userSessionService;
 
   @NonFinal
   @Value("${jwt.signerKey}")
@@ -130,11 +133,13 @@ public class AuthenticationService {
       throw new AppException(ErrorCode.USER_NOT_ACTIVE);
     }
 
-    var token = generateToken(user);
+    var token = generateToken(user, null);
     return AuthenticationResponse.builder().token(token).authenticated(true).build();
   }
 
-  public AuthenticationResponse authenticate(AuthenticationRequest request) {
+  public AuthenticationResponse authenticate(
+      AuthenticationRequest request, String userAgent, String ipAddress) {
+
     var user =
         userRepository
             .findByUsername(request.getUsername())
@@ -148,14 +153,25 @@ public class AuthenticationService {
     if (!authenticated) {
       throw new AppException(ErrorCode.LOGIN_FAILED);
     }
-    String token = generateToken(user);
+    UserDevice device =
+        userDeviceService.recordDeviceAccess(user, userAgent, ipAddress, request.isRememberMe());
+
+    JWTClaimsSet claimsSet = buildClaims(user, device != null ? device.getId() : null);
+    String token = generateTokenFromClaims(claimsSet);
+
+    userSessionService.createSession(
+        user,
+        device,
+        claimsSet.getJWTID(),
+        claimsSet.getExpirationTime().toInstant(),
+        userAgent,
+        ipAddress);
+
     return AuthenticationResponse.builder().token(token).authenticated(true).build();
   }
 
-  private String generateToken(User user) {
-    JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
-
-    JWTClaimsSet jwtClaimsSet =
+  private JWTClaimsSet buildClaims(User user, String deviceId) {
+    JWTClaimsSet.Builder builder =
         new JWTClaimsSet.Builder()
             .subject(user.getUsername())
             .issuer("medical-pneumonia")
@@ -163,9 +179,17 @@ public class AuthenticationService {
             .expirationTime(
                 new Date(Instant.now().plus(validDuration, ChronoUnit.SECONDS).toEpochMilli()))
             .jwtID(UUID.randomUUID().toString())
-            .claim("scope", buildScope(user))
-            .build();
+            .claim("scope", buildScope(user));
 
+    if (deviceId != null) {
+      builder.claim("did", deviceId);
+    }
+
+    return builder.build();
+  }
+
+  private String generateTokenFromClaims(JWTClaimsSet jwtClaimsSet) {
+    JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
     Payload payload = new Payload(jwtClaimsSet.toJSONObject());
     JWSObject jwsObject = new JWSObject(header, payload);
 
@@ -175,6 +199,10 @@ public class AuthenticationService {
     } catch (JOSEException e) {
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
+  }
+
+  private String generateToken(User user, String deviceId) {
+    return generateTokenFromClaims(buildClaims(user, deviceId));
   }
 
   @org.springframework.cache.annotation.Cacheable(value = "tokenBlacklist", key = "#jit")

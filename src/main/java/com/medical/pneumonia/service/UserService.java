@@ -12,7 +12,9 @@ import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.UserMapper;
 import com.medical.pneumonia.repository.RoleRepository;
+import com.medical.pneumonia.repository.UserDeviceRepository;
 import com.medical.pneumonia.repository.UserRepository;
+import com.medical.pneumonia.repository.UserSessionRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
@@ -42,6 +44,8 @@ public class UserService {
   EmailService emailService;
   CloudinaryService cloudinaryService;
   NotificationService notificationService;
+  UserDeviceRepository userDeviceRepository;
+  UserSessionRepository userSessionRepository;
 
   public UserResponse uploadAvatar(MultipartFile file) {
     var context = SecurityContextHolder.getContext();
@@ -53,7 +57,7 @@ public class UserService {
 
     var result = cloudinaryService.upload(file);
     user.setAvatar(result.get("url").toString());
-    return userMapper.toUserResponse(userRepository.save(user));
+    return toUserResponseWithDeviceCount(userRepository.save(user));
   }
 
   private User getUserEntity(String id) {
@@ -100,7 +104,7 @@ public class UserService {
     notificationService.sendToAll(
         "/topic/admin/notifications", "Một tài khoản mới vừa được khởi tạo: " + user.getUsername());
 
-    return userMapper.toUserResponse(user);
+    return toUserResponseWithDeviceCount(user);
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -113,18 +117,19 @@ public class UserService {
         .pageSize(pageData.getSize())
         .totalPages(pageData.getTotalPages())
         .totalElements(pageData.getTotalElements())
-        .data(pageData.getContent().stream().map(userMapper::toUserResponse).toList())
+        .data(pageData.getContent().stream().map(this::toUserResponseWithDeviceCount).toList())
         .build();
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN') or #id == authentication.principal.getClaim('sub')")
   public UserResponse getUserById(String id) {
-    return userMapper.toUserResponse(getUserEntity(id));
+    return toUserResponseWithDeviceCount(getUserEntity(id));
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public void deleteUser(String id) {
-    userRepository.delete(getUserEntity(id));
+    User user = getUserEntity(id);
+    userRepository.delete(user);
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -151,7 +156,9 @@ public class UserService {
       user.setRoles(new HashSet<>(roles));
     }
 
-    return userMapper.toUserResponse(userRepository.save(user));
+    user = userRepository.save(user);
+
+    return toUserResponseWithDeviceCount(user);
   }
 
   public UserResponse getMyInfo() {
@@ -162,7 +169,14 @@ public class UserService {
         userRepository
             .findByUsername(username)
             .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    return userMapper.toUserResponse(user);
+    return toUserResponseWithDeviceCount(user);
+  }
+
+  private UserResponse toUserResponseWithDeviceCount(User user) {
+    UserResponse response = userMapper.toUserResponse(user);
+    response.setDeviceCount(userDeviceRepository.countByUser(user));
+    response.setSessionCount(userSessionRepository.countByUserAndStatus(user, "ACTIVE"));
+    return response;
   }
 
   public void setPassword(String token, String password) {
@@ -179,6 +193,7 @@ public class UserService {
     user.setStatus(UserStatus.ACTIVE);
     user.setActivationToken(null);
     user.setActivationTokenExpiry(null);
+    userRepository.save(user);
     userRepository.save(user);
   }
 

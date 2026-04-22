@@ -74,7 +74,8 @@ public class PatientService {
             .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
     patientMapper.updatePatient(patient, request);
-    return patientMapper.toPatientResponse(patientRepository.save(patient));
+    patient = patientRepository.save(patient);
+    return patientMapper.toPatientResponse(patient);
   }
 
   @PreAuthorize(

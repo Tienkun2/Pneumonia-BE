@@ -9,6 +9,7 @@ import com.medical.pneumonia.dto.response.AuthenticationResponse;
 import com.medical.pneumonia.dto.response.IntrospectResponse;
 import com.medical.pneumonia.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.text.ParseException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +27,14 @@ public class AuthenticationController {
   AuthenticationService authenticationService;
 
   @PostMapping("/login")
-  ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+  ApiResponse<AuthenticationResponse> authenticate(
+      @RequestBody AuthenticationRequest request, HttpServletRequest servletRequest) {
+    String userAgent = servletRequest.getHeader("User-Agent");
+    String ipAddress = servletRequest.getRemoteAddr();
+
     return ApiResponse.<AuthenticationResponse>builder()
-        .result(authenticationService.authenticate(request))
+        .message("Login successfully")
+        .result(authenticationService.authenticate(request, userAgent, ipAddress))
         .build();
   }
 
@@ -36,6 +42,7 @@ public class AuthenticationController {
   ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
       throws ParseException, JOSEException {
     return ApiResponse.<IntrospectResponse>builder()
+        .message("Token introspection successfully")
         .result(authenticationService.introspect(request))
         .build();
   }
@@ -44,13 +51,14 @@ public class AuthenticationController {
   ApiResponse<Void> logout(@RequestBody LogoutRequest request)
       throws ParseException, JOSEException {
     authenticationService.logout(request);
-    return ApiResponse.<Void>builder().build();
+    return ApiResponse.<Void>builder().message("Logout successfully").build();
   }
 
   @PostMapping("refresh")
   ApiResponse<AuthenticationResponse> refresh(@RequestBody RefreshRequest request)
       throws ParseException, JOSEException {
     return ApiResponse.<AuthenticationResponse>builder()
+        .message("Token refreshed successfully")
         .result(authenticationService.refreshToken(request))
         .build();
   }

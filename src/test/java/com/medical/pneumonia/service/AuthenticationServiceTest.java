@@ -27,6 +27,7 @@ class AuthenticationServiceTest {
   @Mock InvalidTokenRepository invalidTokenRepository;
 
   @Mock PasswordEncoder passwordEncoder;
+  @Mock UserDeviceService userDeviceService;
 
   @InjectMocks AuthenticationService authenticationService;
 
@@ -59,7 +60,7 @@ class AuthenticationServiceTest {
 
     when(passwordEncoder.matches("123", "encoded")).thenReturn(true);
 
-    AuthenticationResponse response = authenticationService.authenticate(request);
+    AuthenticationResponse response = authenticationService.authenticate(request, "UA", "1.1.1.1");
 
     assertTrue(response.isAuthenticated());
     assertNotNull(response.getToken());
@@ -74,7 +75,9 @@ class AuthenticationServiceTest {
     when(userRepository.findByUsername("admin")).thenReturn(Optional.empty());
 
     var exception =
-        assertThrows(AppException.class, () -> authenticationService.authenticate(request));
+        assertThrows(
+            AppException.class, () -> authenticationService.authenticate(request, "UA", "1.1.1.1"));
+
     assertEquals(ErrorCode.LOGIN_FAILED, exception.getErrorCode());
   }
 
@@ -89,6 +92,7 @@ class AuthenticationServiceTest {
 
     when(passwordEncoder.matches("123", "encoded")).thenReturn(false);
 
-    assertThrows(AppException.class, () -> authenticationService.authenticate(request));
+    assertThrows(
+        AppException.class, () -> authenticationService.authenticate(request, "UA", "1.1.1.1"));
   }
 }
