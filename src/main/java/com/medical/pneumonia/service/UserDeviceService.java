@@ -5,7 +5,9 @@ import com.medical.pneumonia.entity.InvalidToken;
 import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.entity.UserDevice;
 import com.medical.pneumonia.entity.UserSession;
+import com.medical.pneumonia.enums.DeviceStatus;
 import com.medical.pneumonia.enums.DeviceType;
+import com.medical.pneumonia.enums.SessionStatus;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.UserDeviceMapper;
@@ -90,12 +92,15 @@ public class UserDeviceService {
                                     .deviceType(type)
                                     .appName(app)
                                     .firstAccess(Instant.now())
-                                    .status("Đang hoạt động")
+                                    .status(DeviceStatus.ACTIVE)
                                     .build());
                   });
 
       device.setIpAddress(ipAddress);
       device.setLastAccess(Instant.now());
+      if (DeviceStatus.REVOKED.equals(device.getStatus())) {
+        device.setStatus(DeviceStatus.ACTIVE);
+      }
       if (rememberMe) {
         device.setRemembered(true);
       }
@@ -106,22 +111,27 @@ public class UserDeviceService {
     }
   }
 
-  public void revokeDevice(String deviceId) {
+  public void revokeDevice(String deviceId, String currentTokenId) {
     UserDevice device =
         userDeviceRepository
             .findById(deviceId)
             .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
     device.setRemembered(false);
-    device.setStatus("Bị thu hồi");
+    device.setStatus(DeviceStatus.REVOKED);
     userDeviceRepository.save(device);
 
-    // Revoke all active sessions for this device
+    // Revoke all active sessions for this device, except the current one
     List<UserSession> activeSessions =
-        userSessionRepository.findByDeviceIdAndStatus(deviceId, "ACTIVE");
+        userSessionRepository.findByDeviceIdAndStatus(deviceId, SessionStatus.ACTIVE);
 
     activeSessions.forEach(
         session -> {
-          session.setStatus("REVOKED");
+          // If this is the current session, skip revoking it so the user can finish their work
+          if (session.getTokenId().equals(currentTokenId)) {
+            return;
+          }
+
+          session.setStatus(SessionStatus.REVOKED);
           userSessionRepository.save(session);
 
           // Blacklist the token

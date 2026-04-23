@@ -31,6 +31,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -129,7 +131,7 @@ public class AuthenticationService {
             .findByUsername(username)
             .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
-    if (!com.medical.pneumonia.constant.UserStatus.ACTIVE.equals(user.getStatus())) {
+    if (!UserStatus.ACTIVE.equals(user.getStatus())) {
       throw new AppException(ErrorCode.USER_NOT_ACTIVE);
     }
 
@@ -205,12 +207,12 @@ public class AuthenticationService {
     return generateTokenFromClaims(buildClaims(user, deviceId));
   }
 
-  @org.springframework.cache.annotation.Cacheable(value = "tokenBlacklist", key = "#jit")
+  @Cacheable(value = "tokenBlacklist", key = "#jit")
   public boolean isTokenInvalid(String jit) {
     return invalidTokenRepository.existsById(jit);
   }
 
-  @org.springframework.cache.annotation.CacheEvict(value = "tokenBlacklist", key = "#jit")
+  @CacheEvict(value = "tokenBlacklist", key = "#jit")
   public void evictTokenCache(String jit) {
     // Purposefully empty, just for cache eviction
   }

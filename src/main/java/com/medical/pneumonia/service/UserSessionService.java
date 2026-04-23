@@ -6,6 +6,7 @@ import com.medical.pneumonia.entity.InvalidToken;
 import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.entity.UserDevice;
 import com.medical.pneumonia.entity.UserSession;
+import com.medical.pneumonia.enums.SessionStatus;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.UserSessionMapper;
@@ -16,6 +17,7 @@ import java.util.Date;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +31,7 @@ public class UserSessionService {
   UserSessionMapper userSessionMapper;
 
   public PageResponse<UserSessionResponse> getUserSessions(String userId, int page, int size) {
-    var pageable = org.springframework.data.domain.PageRequest.of(page - 1, size);
+    var pageable = PageRequest.of(page - 1, size);
     var pageData = userSessionRepository.findByUserIdOrderByLoginTimeDesc(userId, pageable);
 
     return PageResponse.<UserSessionResponse>builder()
@@ -46,8 +48,9 @@ public class UserSessionService {
   }
 
   private void checkAutoExpire(UserSession session) {
-    if ("ACTIVE".equals(session.getStatus()) && session.getExpiryTime().isBefore(Instant.now())) {
-      session.setStatus("EXPIRED");
+    if (SessionStatus.ACTIVE.equals(session.getStatus())
+        && session.getExpiryTime().isBefore(Instant.now())) {
+      session.setStatus(SessionStatus.EXPIRED);
       userSessionRepository.save(session);
     }
   }
@@ -63,7 +66,7 @@ public class UserSessionService {
             .expiryTime(expiry)
             .userAgent(ua)
             .ipAddress(ip)
-            .status("ACTIVE")
+            .status(SessionStatus.ACTIVE)
             .build();
     userSessionRepository.save(session);
   }
@@ -75,8 +78,8 @@ public class UserSessionService {
             .findById(sessionId)
             .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
 
-    if ("ACTIVE".equals(session.getStatus())) {
-      session.setStatus("REVOKED");
+    if (SessionStatus.ACTIVE.equals(session.getStatus())) {
+      session.setStatus(SessionStatus.REVOKED);
       userSessionRepository.save(session);
 
       InvalidToken invalidToken =

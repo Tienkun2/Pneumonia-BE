@@ -28,6 +28,7 @@ class AuthenticationServiceTest {
 
   @Mock PasswordEncoder passwordEncoder;
   @Mock UserDeviceService userDeviceService;
+  @Mock UserSessionService userSessionService;
 
   @InjectMocks AuthenticationService authenticationService;
 

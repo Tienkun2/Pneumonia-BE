@@ -22,9 +22,11 @@ import com.medical.pneumonia.repository.DiagnosisRepository;
 import com.medical.pneumonia.repository.MedicalImageRepository;
 import com.medical.pneumonia.repository.PatientRepository;
 import com.medical.pneumonia.repository.VisitRepository;
+import com.medical.pneumonia.enums.ImageType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -93,21 +95,21 @@ public class VisitService {
   public List<VisitResponse> populateVisitResponses(List<Visit> visits, List<String> visitIds) {
     var imagesMap =
         medicalImageRepository.findAllByVisitIdIn(visitIds).stream()
-            .collect(java.util.stream.Collectors.groupingBy(img -> img.getVisit().getId()));
+            .collect(Collectors.groupingBy(img -> img.getVisit().getId()));
 
     var diagnosesMap =
         diagnosisRepository.findAllByVisitIdIn(visitIds).stream()
-            .collect(java.util.stream.Collectors.groupingBy(diag -> diag.getVisit().getId()));
+            .collect(Collectors.groupingBy(diag -> diag.getVisit().getId()));
 
     return visits.stream()
         .map(
             visit -> {
               VisitResponse response = visitMapper.toVisitResponse(visit);
-              var visitDiagnoses = diagnosesMap.getOrDefault(visit.getId(), java.util.List.of());
+              var visitDiagnoses = diagnosesMap.getOrDefault(visit.getId(), List.of());
 
               response.setMedicalImages(
                   medicalImageMapper.toMedicalImageResponse(
-                      imagesMap.getOrDefault(visit.getId(), java.util.List.of())));
+                      imagesMap.getOrDefault(visit.getId(), List.of())));
               response.setDiagnoses(diagnosisMapper.toDiagnosisResponse(visitDiagnoses));
 
               if (!visitDiagnoses.isEmpty()) {
@@ -248,7 +250,7 @@ public class VisitService {
                     .type(
                         request.getImageType() != null
                             ? request.getImageType()
-                            : com.medical.pneumonia.enums.ImageType.XRAY)
+                            : ImageType.XRAY)
                     .uploadedAt(Instant.now())
                     .build();
             image = medicalImageRepository.save(image);

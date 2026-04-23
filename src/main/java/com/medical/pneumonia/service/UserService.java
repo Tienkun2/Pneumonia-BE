@@ -8,6 +8,7 @@ import com.medical.pneumonia.dto.response.PageResponse;
 import com.medical.pneumonia.dto.response.UserResponse;
 import com.medical.pneumonia.entity.Role;
 import com.medical.pneumonia.entity.User;
+import com.medical.pneumonia.enums.SessionStatus;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.UserMapper;
@@ -16,6 +17,7 @@ import com.medical.pneumonia.repository.UserDeviceRepository;
 import com.medical.pneumonia.repository.UserRepository;
 import com.medical.pneumonia.repository.UserSessionRepository;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
@@ -75,8 +77,7 @@ public class UserService {
 
     User user = userMapper.toUser(request);
 
-    if (request.getDob() != null
-        && request.getDob().plusYears(18).isAfter(java.time.LocalDate.now())) {
+    if (request.getDob() != null && request.getDob().plusYears(18).isAfter(LocalDate.now())) {
       throw new AppException(ErrorCode.DOB_INVALID);
     }
 
@@ -175,7 +176,8 @@ public class UserService {
   private UserResponse toUserResponseWithDeviceCount(User user) {
     UserResponse response = userMapper.toUserResponse(user);
     response.setDeviceCount(userDeviceRepository.countByUser(user));
-    response.setSessionCount(userSessionRepository.countByUserAndStatus(user, "ACTIVE"));
+    response.setSessionCount(
+        userSessionRepository.countByUserAndStatus(user, SessionStatus.ACTIVE));
     return response;
   }
 

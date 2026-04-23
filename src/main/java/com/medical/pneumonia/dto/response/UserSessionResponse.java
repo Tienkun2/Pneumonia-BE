@@ -1,5 +1,6 @@
 package com.medical.pneumonia.dto.response;
 
+import com.medical.pneumonia.enums.SessionStatus;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,5 +20,5 @@ public class UserSessionResponse {
   Instant expiryTime;
   String ipAddress;
   String userAgent;
-  String status;
+  SessionStatus status;
 }

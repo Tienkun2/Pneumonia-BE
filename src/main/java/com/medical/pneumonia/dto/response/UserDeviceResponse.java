@@ -1,5 +1,6 @@
 package com.medical.pneumonia.dto.response;
 
+import com.medical.pneumonia.enums.DeviceStatus;
 import com.medical.pneumonia.enums.DeviceType;
 import java.time.Instant;
 import lombok.AccessLevel;
@@ -18,7 +19,7 @@ public class UserDeviceResponse {
   String id;
   DeviceType deviceType;
   String appName;
-  String status;
+  DeviceStatus status;
   Instant lastAccess;
   Instant firstAccess;
   String ipAddress;

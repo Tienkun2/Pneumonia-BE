@@ -14,7 +14,9 @@ import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.mapper.UserMapper;
 import com.medical.pneumonia.repository.RoleRepository;
+import com.medical.pneumonia.repository.UserDeviceRepository;
 import com.medical.pneumonia.repository.UserRepository;
+import com.medical.pneumonia.repository.UserSessionRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +45,12 @@ class UserServiceTest {
   @Mock PasswordEncoder passwordEncoder;
 
   @Mock UserMapper userMapper;
+
+  @Mock UserDeviceRepository userDeviceRepository;
+  @Mock UserSessionRepository userSessionRepository;
+  @Mock EmailService emailService;
+  @Mock CloudinaryService cloudinaryService;
+  @Mock NotificationService notificationService;
 
   @InjectMocks UserService userService;
 

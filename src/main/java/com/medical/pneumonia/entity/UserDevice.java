@@ -1,5 +1,6 @@
 package com.medical.pneumonia.entity;
 
+import com.medical.pneumonia.enums.DeviceStatus;
 import com.medical.pneumonia.enums.DeviceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,7 +41,8 @@ public class UserDevice {
 
   String appName;
 
-  String status;
+  @Enumerated(EnumType.STRING)
+  DeviceStatus status;
 
   Instant lastAccess;
 
@@ -51,6 +53,7 @@ public class UserDevice {
   @Column(columnDefinition = "TEXT")
   String userAgent;
 
+  @Builder.Default
   @Column(columnDefinition = "boolean default false")
-  boolean isRemembered = false;
+  boolean remembered = false;
 }

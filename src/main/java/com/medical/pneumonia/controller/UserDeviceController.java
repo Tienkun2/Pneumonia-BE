@@ -8,8 +8,11 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,9 +27,7 @@ public class UserDeviceController {
   UserService userService;
 
   @GetMapping("/my-devices")
-  public ApiResponse<List<UserDeviceResponse>> getMyDevices(
-      @org.springframework.security.core.annotation.AuthenticationPrincipal
-          org.springframework.security.oauth2.jwt.Jwt jwt) {
+  public ApiResponse<List<UserDeviceResponse>> getMyDevices(@AuthenticationPrincipal Jwt jwt) {
     String currentUserId = userService.getMyInfo().getId();
     String currentDeviceId = jwt.getClaimAsString("did");
     return ApiResponse.<List<UserDeviceResponse>>builder()
@@ -37,9 +38,7 @@ public class UserDeviceController {
 
   @GetMapping("/user/{userId}")
   public ApiResponse<List<UserDeviceResponse>> getUserDevices(
-      @PathVariable String userId,
-      @org.springframework.security.core.annotation.AuthenticationPrincipal
-          org.springframework.security.oauth2.jwt.Jwt jwt) {
+      @PathVariable String userId, @AuthenticationPrincipal Jwt jwt) {
     String currentDeviceId = jwt.getClaimAsString("did");
     return ApiResponse.<List<UserDeviceResponse>>builder()
         .message("Get user login devices successfully")
@@ -47,9 +46,9 @@ public class UserDeviceController {
         .build();
   }
 
-  @org.springframework.web.bind.annotation.PatchMapping("/{deviceId}/revoke")
-  public ApiResponse<Void> revokeDevice(@PathVariable String deviceId) {
-    userDeviceService.revokeDevice(deviceId);
+  @PatchMapping("/{deviceId}/revoke")
+  public ApiResponse<Void> revokeDevice(@PathVariable String deviceId, @AuthenticationPrincipal Jwt jwt) {
+    userDeviceService.revokeDevice(deviceId, jwt.getId());
     return ApiResponse.<Void>builder().message("Device access revoked successfully").build();
   }
 
@@ -59,7 +58,7 @@ public class UserDeviceController {
     return ApiResponse.<Void>builder().message("Device record deleted successfully").build();
   }
 
-  @org.springframework.web.bind.annotation.PatchMapping("/{deviceId}/trust")
+  @PatchMapping("/{deviceId}/trust")
   public ApiResponse<Void> trustDevice(@PathVariable String deviceId) {
     userDeviceService.trustDevice(deviceId);
     return ApiResponse.<Void>builder().message("Device trusted successfully").build();
