@@ -3,8 +3,13 @@ package com.medical.pneumonia.service;
 import com.medical.pneumonia.dto.response.NotificationResponse;
 import com.medical.pneumonia.dto.response.PageResponse;
 import com.medical.pneumonia.entity.Notification;
+import com.medical.pneumonia.entity.User;
+import com.medical.pneumonia.entity.UserSetting;
+import com.medical.pneumonia.enums.NotificationType;
 import com.medical.pneumonia.mapper.NotificationMapper;
 import com.medical.pneumonia.repository.NotificationRepository;
+import com.medical.pneumonia.repository.UserRepository;
+import com.medical.pneumonia.repository.UserSettingRepository;
 import java.time.Instant;
 import java.util.List;
 import lombok.AccessLevel;
@@ -25,37 +30,65 @@ public class NotificationService {
   SimpMessagingTemplate messagingTemplate;
   NotificationRepository notificationRepository;
   NotificationMapper notificationMapper;
+  UserSettingRepository userSettingRepository;
+  UserRepository userRepository;
 
-  /** Gửi thông báo riêng cho 1 user (vừa lưu DB vừa push socket) */
-  public void sendToUser(String username, String destination, String content) {
+  /** Gửi thông báo riêng cho 1 user (vừa lưu DB vừa push socket) - Có kiểm tra cài đặt */
+  public void sendToUser(String username, NotificationType type, String content) {
+    // 1. Kiểm tra cài đặt nhận thông báo của User
+    if (!isNotificationEnabled(username, type)) {
+      log.info("Notification skipped for user [{}] because [{}] is disabled", username, type);
+      return;
+    }
+
+    // 2. Lưu và gửi nếu được phép
     Notification notification =
         Notification.builder()
             .recipientUsername(username)
             .content(content)
+            .type(type)
             .read(false)
             .createdAt(Instant.now())
             .build();
     notificationRepository.save(notification);
 
     NotificationResponse response = notificationMapper.toNotificationResponse(notification);
-    messagingTemplate.convertAndSendToUser(username, destination, response);
-    log.info("Sent notification to user [{}]: {}", username, content);
+    messagingTemplate.convertAndSendToUser(username, "/queue/notifications", response);
+    log.info("Sent [{}] notification to user [{}]: {}", type, username, content);
   }
 
-  /** Gửi thông báo broadcast tới tất cả (topic), lưu DB với recipientUsername = "ALL" */
-  public void sendToAll(String destination, String content) {
+  /** Kiểm tra xem user có bật loại thông báo này không */
+  private boolean isNotificationEnabled(String username, NotificationType type) {
+    User user = userRepository.findByUsername(username).orElse(null);
+    if (user == null) return false;
+
+    UserSetting settings = userSettingRepository.findByUser(user).orElse(null);
+    if (settings == null) return true; // Mặc định bật nếu chưa có setting
+
+    return switch (type) {
+      case DIAGNOSIS -> settings.isNotifyDiagnosis();
+      case SYSTEM -> settings.isNotifySystem();
+      case PATIENT -> settings.isNotifyPatient();
+      case SECURITY -> settings.isNotifySecurity();
+      default -> true;
+    };
+  }
+
+  /** Gửi thông báo broadcast tới tất cả (topic) */
+  public void sendToAll(NotificationType type, String content) {
     Notification notification =
         Notification.builder()
             .recipientUsername("ALL")
             .content(content)
+            .type(type)
             .read(false)
             .createdAt(Instant.now())
             .build();
     notificationRepository.save(notification);
 
     NotificationResponse response = notificationMapper.toNotificationResponse(notification);
-    messagingTemplate.convertAndSend(destination, response);
-    log.info("Broadcast notification to [{}]: {}", destination, content);
+    messagingTemplate.convertAndSend("/topic/notifications", response);
+    log.info("Broadcast [{}] notification: {}", type, content);
   }
 
   /** Lấy danh sách thông báo: cả cá nhân (username) và broadcast (ALL) */
@@ -76,7 +109,7 @@ public class NotificationService {
         .build();
   }
 
-  /** Đếm số thông báo chưa đọc: cả cá nhân (username) và broadcast (ALL) */
+  /** Đếm số thông báo chưa đọc */
   public long countUnread() {
     String username = SecurityContextHolder.getContext().getAuthentication().getName();
     List<String> targets = List.of(username, "ALL");
@@ -91,17 +124,14 @@ public class NotificationService {
     log.info("Marked all notifications as read for user [{}]", username);
   }
 
-  /** Đánh dấu 1 thông báo cụ thể là đã đọc theo ID */
   public void markOneAsRead(String id) {
     notificationRepository.markOneAsRead(id);
   }
 
-  /** Xóa 1 thông báo theo ID */
   public void deleteOne(String id) {
     notificationRepository.deleteOne(id);
   }
 
-  /** Xóa tất cả thông báo của User hiện tại */
   public void deleteAll() {
     String username = SecurityContextHolder.getContext().getAuthentication().getName();
     List<String> targets = List.of(username, "ALL");

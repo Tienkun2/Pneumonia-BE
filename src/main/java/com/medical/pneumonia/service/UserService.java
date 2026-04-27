@@ -8,6 +8,7 @@ import com.medical.pneumonia.dto.response.PageResponse;
 import com.medical.pneumonia.dto.response.UserResponse;
 import com.medical.pneumonia.entity.Role;
 import com.medical.pneumonia.entity.User;
+import com.medical.pneumonia.enums.NotificationType;
 import com.medical.pneumonia.enums.SessionStatus;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
@@ -103,7 +104,7 @@ public class UserService {
     emailService.sendActivationEmail(request.getEmail(), user.getUsername(), token);
 
     notificationService.sendToAll(
-        "/topic/admin/notifications", "Một tài khoản mới vừa được khởi tạo: " + user.getUsername());
+        NotificationType.SYSTEM, "Một tài khoản mới vừa được khởi tạo: " + user.getUsername());
 
     return toUserResponseWithDeviceCount(user);
   }

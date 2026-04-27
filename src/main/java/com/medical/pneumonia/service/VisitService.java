@@ -13,6 +13,8 @@ import com.medical.pneumonia.entity.MedicalImage;
 import com.medical.pneumonia.entity.Patient;
 import com.medical.pneumonia.entity.Visit;
 import com.medical.pneumonia.enums.DiagnosisResult;
+import com.medical.pneumonia.enums.ImageType;
+import com.medical.pneumonia.enums.NotificationType;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.DiagnosisMapper;
@@ -22,7 +24,6 @@ import com.medical.pneumonia.repository.DiagnosisRepository;
 import com.medical.pneumonia.repository.MedicalImageRepository;
 import com.medical.pneumonia.repository.PatientRepository;
 import com.medical.pneumonia.repository.VisitRepository;
-import com.medical.pneumonia.enums.ImageType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Random;
@@ -72,6 +73,9 @@ public class VisitService {
     }
 
     visit = visitRepository.save(visit);
+    notificationService.sendToAll(
+        NotificationType.PATIENT,
+        "Một lượt khám mới vừa được tạo cho bệnh nhân: " + patient.getFullName());
     return visitMapper.toVisitResponse(visit);
   }
 
@@ -178,7 +182,7 @@ public class VisitService {
     String doctorName = SecurityContextHolder.getContext().getAuthentication().getName();
     notificationService.sendToUser(
         doctorName,
-        "/queue/notifications",
+        NotificationType.DIAGNOSIS,
         "Lượt khám " + visitId + " đã có kết quả chẩn đoán: " + randomResult);
 
     return diagnosisMapper.toDiagnosisResponse(diagnosis);
@@ -247,10 +251,7 @@ public class VisitService {
                 MedicalImage.builder()
                     .visit(savedVisit)
                     .imageUrl(imageUrlToSave)
-                    .type(
-                        request.getImageType() != null
-                            ? request.getImageType()
-                            : ImageType.XRAY)
+                    .type(request.getImageType() != null ? request.getImageType() : ImageType.XRAY)
                     .uploadedAt(Instant.now())
                     .build();
             image = medicalImageRepository.save(image);

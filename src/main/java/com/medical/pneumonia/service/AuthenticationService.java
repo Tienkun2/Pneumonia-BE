@@ -10,6 +10,7 @@ import com.medical.pneumonia.dto.response.IntrospectResponse;
 import com.medical.pneumonia.entity.InvalidToken;
 import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.entity.UserDevice;
+import com.medical.pneumonia.enums.NotificationType;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.repository.InvalidTokenRepository;
@@ -47,6 +48,7 @@ public class AuthenticationService {
   PasswordEncoder passwordEncoder;
   UserDeviceService userDeviceService;
   UserSessionService userSessionService;
+  NotificationService notificationService;
 
   @NonFinal
   @Value("${jwt.signerKey}")
@@ -168,6 +170,11 @@ public class AuthenticationService {
         claimsSet.getExpirationTime().toInstant(),
         userAgent,
         ipAddress);
+
+    notificationService.sendToUser(
+        user.getUsername(),
+        NotificationType.SECURITY,
+        "Tài khoản của bạn vừa đăng nhập thành công từ thiết bị: " + userAgent);
 
     return AuthenticationResponse.builder().token(token).authenticated(true).build();
   }

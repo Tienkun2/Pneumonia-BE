@@ -5,6 +5,7 @@ import com.medical.pneumonia.dto.request.PatientUpdateRequest;
 import com.medical.pneumonia.dto.response.PageResponse;
 import com.medical.pneumonia.dto.response.PatientResponse;
 import com.medical.pneumonia.entity.Patient;
+import com.medical.pneumonia.enums.NotificationType;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
 import com.medical.pneumonia.mapper.PatientMapper;
@@ -25,6 +26,7 @@ public class PatientService {
 
   PatientRepository patientRepository;
   PatientMapper patientMapper;
+  NotificationService notificationService;
 
   @PreAuthorize(
       "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_DOCTOR') or hasAuthority('ROLE_NURSE')")
@@ -37,6 +39,9 @@ public class PatientService {
     patient.setCreatedAt(Instant.now());
 
     patient = patientRepository.save(patient);
+    notificationService.sendToAll(
+        NotificationType.PATIENT, "Một bệnh nhân mới vừa được đăng ký: " + patient.getFullName());
+
     return patientMapper.toPatientResponse(patient);
   }
 

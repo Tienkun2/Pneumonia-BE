@@ -1,7 +1,10 @@
 package com.medical.pneumonia.entity;
 
+import com.medical.pneumonia.enums.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -38,6 +41,9 @@ public class Notification {
 
   @Column(nullable = false, columnDefinition = "TEXT")
   String content;
+
+  @Enumerated(EnumType.STRING)
+  NotificationType type;
 
   @Column(name = "is_read", nullable = false)
   @Builder.Default

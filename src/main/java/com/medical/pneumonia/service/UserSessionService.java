@@ -6,6 +6,7 @@ import com.medical.pneumonia.entity.InvalidToken;
 import com.medical.pneumonia.entity.User;
 import com.medical.pneumonia.entity.UserDevice;
 import com.medical.pneumonia.entity.UserSession;
+import com.medical.pneumonia.enums.NotificationType;
 import com.medical.pneumonia.enums.SessionStatus;
 import com.medical.pneumonia.exception.AppException;
 import com.medical.pneumonia.exception.ErrorCode;
@@ -29,6 +30,7 @@ public class UserSessionService {
   UserSessionRepository userSessionRepository;
   InvalidTokenRepository invalidTokenRepository;
   UserSessionMapper userSessionMapper;
+  NotificationService notificationService;
 
   public PageResponse<UserSessionResponse> getUserSessions(String userId, int page, int size) {
     var pageable = PageRequest.of(page - 1, size);
@@ -88,6 +90,11 @@ public class UserSessionService {
               .expiryTime(Date.from(session.getExpiryTime()))
               .build();
       invalidTokenRepository.save(invalidToken);
+
+      notificationService.sendToUser(
+          session.getUser().getUsername(),
+          NotificationType.SECURITY,
+          "Một phiên làm việc của bạn vừa bị thu hồi vì lý do bảo mật.");
     }
   }
 }

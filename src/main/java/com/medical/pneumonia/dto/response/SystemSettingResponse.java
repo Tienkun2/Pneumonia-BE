@@ -1,7 +1,5 @@
 package com.medical.pneumonia.dto.response;
 
-import com.medical.pneumonia.enums.NotificationType;
-import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,14 +8,11 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class NotificationResponse {
-  String id;
-  String content;
-  boolean read;
-  Instant createdAt;
-  NotificationType type;
+public class SystemSettingResponse {
+  String hospitalName;
+  String systemId;
 }

@@ -47,7 +47,8 @@ public class UserDeviceController {
   }
 
   @PatchMapping("/{deviceId}/revoke")
-  public ApiResponse<Void> revokeDevice(@PathVariable String deviceId, @AuthenticationPrincipal Jwt jwt) {
+  public ApiResponse<Void> revokeDevice(
+      @PathVariable String deviceId, @AuthenticationPrincipal Jwt jwt) {
     userDeviceService.revokeDevice(deviceId, jwt.getId());
     return ApiResponse.<Void>builder().message("Device access revoked successfully").build();
   }

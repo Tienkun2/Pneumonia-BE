@@ -1,7 +1,8 @@
-package com.medical.pneumonia.dto.response;
+package com.medical.pneumonia.entity;
 
-import com.medical.pneumonia.enums.NotificationType;
-import java.time.Instant;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,11 +14,11 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class NotificationResponse {
-  String id;
-  String content;
-  boolean read;
-  Instant createdAt;
-  NotificationType type;
+@Table(name = "system_settings")
+public class SystemSetting {
+  @Id String id;
+  String hospitalName;
+  String systemId;
 }
