@@ -21,11 +21,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -113,13 +117,35 @@ public class UserService {
   public PageResponse<UserResponse> getAllUsers(int page, int size) {
     Pageable pageable = PageRequest.of(page - 1, size);
     var pageData = userRepository.findAll(pageable);
+    List<User> users = pageData.getContent();
+
+    Map<String, Long> deviceCounts =
+        userDeviceRepository.countByUserIn(users).stream()
+            .collect(
+                Collectors.toMap(row -> (String) row[0], row -> ((Number) row[1]).longValue()));
+
+    Map<String, Long> sessionCounts =
+        userSessionRepository.countByUserInAndStatus(users, SessionStatus.ACTIVE).stream()
+            .collect(
+                Collectors.toMap(row -> (String) row[0], row -> ((Number) row[1]).longValue()));
+
+    List<UserResponse> responses =
+        users.stream()
+            .map(
+                user -> {
+                  UserResponse response = userMapper.toUserResponse(user);
+                  response.setDeviceCount(deviceCounts.getOrDefault(user.getId(), 0L));
+                  response.setSessionCount(sessionCounts.getOrDefault(user.getId(), 0L));
+                  return response;
+                })
+            .toList();
 
     return PageResponse.<UserResponse>builder()
         .currentPage(page)
         .pageSize(pageData.getSize())
         .totalPages(pageData.getTotalPages())
         .totalElements(pageData.getTotalElements())
-        .data(pageData.getContent().stream().map(this::toUserResponseWithDeviceCount).toList())
+        .data(responses)
         .build();
   }
 

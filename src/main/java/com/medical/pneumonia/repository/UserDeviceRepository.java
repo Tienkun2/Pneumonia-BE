@@ -5,6 +5,8 @@ import com.medical.pneumonia.entity.UserDevice;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -14,4 +16,7 @@ public interface UserDeviceRepository extends JpaRepository<UserDevice, String> 
   Optional<UserDevice> findByUserIdAndUserAgent(String userId, String userAgent);
 
   long countByUser(User user);
+
+  @Query("SELECT d.user.id, COUNT(d) FROM UserDevice d WHERE d.user IN :users GROUP BY d.user.id")
+  List<Object[]> countByUserIn(@Param("users") List<User> users);
 }

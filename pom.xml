@@ -199,6 +199,9 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<layers>
+						<enabled>true</enabled>
+					</layers>
 					<mainClass>com.medical.pneumonia.PneumoniaBackendApplication</mainClass>
 					<excludes>
 						<exclude>

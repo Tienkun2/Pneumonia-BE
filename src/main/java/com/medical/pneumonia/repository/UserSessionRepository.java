@@ -8,6 +8,8 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -21,4 +23,9 @@ public interface UserSessionRepository extends JpaRepository<UserSession, String
   List<UserSession> findByDeviceIdAndStatus(String deviceId, SessionStatus status);
 
   long countByUserAndStatus(User user, SessionStatus status);
+
+  @Query(
+      "SELECT s.user.id, COUNT(s) FROM UserSession s WHERE s.user IN :users AND s.status = :status GROUP BY s.user.id")
+  List<Object[]> countByUserInAndStatus(
+      @Param("users") List<User> users, @Param("status") SessionStatus status);
 }
