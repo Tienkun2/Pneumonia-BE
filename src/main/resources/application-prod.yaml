@@ -3,13 +3,32 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: PneumoniaHikariCP
+      max-lifetime: 2000000
+      connection-timeout: 30000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 5000
   servlet:
     multipart:
       max-file-size: 10MB
@@ -31,6 +50,10 @@ jwt:
 
 server:
   port: ${PORT:8080}
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml
+    min-response-size: 1024
   servlet:
     context-path: /api/v1
 
@@ -40,4 +63,4 @@ cors:
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}
   api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
+  api-secret: ${CLOUDINARY_API_SECRET}

@@ -29,9 +29,9 @@ public interface VisitRepository extends JpaRepository<Visit, String> {
 
   @Query(
       value =
-          "SELECT TO_CHAR(v.visit_date, 'YYYY-MM-DD') as date, COUNT(*) as count "
+          "SELECT CAST(v.visit_date AS DATE) as date, COUNT(*) as count "
               + "FROM visits v WHERE v.visit_date >= :startDate "
-              + "GROUP BY TO_CHAR(v.visit_date, 'YYYY-MM-DD')",
+              + "GROUP BY CAST(v.visit_date AS DATE)",
       nativeQuery = true)
   List<Object[]> countVisitsByDateNative(@Param("startDate") Instant startDate);
 }

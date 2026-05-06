@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -28,8 +29,8 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import java.util.List;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -150,17 +151,20 @@ public class UserService {
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN') or #id == authentication.principal.getClaim('sub')")
+  @Cacheable(value = "users", key = "#id")
   public UserResponse getUserById(String id) {
     return toUserResponseWithDeviceCount(getUserEntity(id));
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+  @CacheEvict(value = "users", key = "#id")
   public void deleteUser(String id) {
     User user = getUserEntity(id);
     userRepository.delete(user);
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+  @CacheEvict(value = "users", key = "#id")
   public UserResponse updateUser(String id, UserUpdateRequest request) {
 
     User user = getUserEntity(id);
@@ -189,6 +193,7 @@ public class UserService {
     return toUserResponseWithDeviceCount(user);
   }
 
+  @Cacheable(value = "users", key = "#username", condition = "#username != null")
   public UserResponse getMyInfo() {
 
     var context = SecurityContextHolder.getContext();

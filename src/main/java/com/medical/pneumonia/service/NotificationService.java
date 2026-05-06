@@ -16,9 +16,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +36,7 @@ public class NotificationService {
   UserRepository userRepository;
 
   /** Gửi thông báo riêng cho 1 user (vừa lưu DB vừa push socket) - Có kiểm tra cài đặt */
+  @Async
   public void sendToUser(String username, NotificationType type, String content) {
     // 1. Kiểm tra cài đặt nhận thông báo của User
     if (!isNotificationEnabled(username, type)) {
@@ -58,7 +61,8 @@ public class NotificationService {
   }
 
   /** Kiểm tra xem user có bật loại thông báo này không */
-  private boolean isNotificationEnabled(String username, NotificationType type) {
+  @Cacheable(value = "user_settings", key = "#username + '_' + #type")
+  public boolean isNotificationEnabled(String username, NotificationType type) {
     User user = userRepository.findByUsername(username).orElse(null);
     if (user == null) return false;
 
@@ -75,6 +79,7 @@ public class NotificationService {
   }
 
   /** Gửi thông báo broadcast tới tất cả (topic) */
+  @Async
   public void sendToAll(NotificationType type, String content) {
     Notification notification =
         Notification.builder()

@@ -5,6 +5,7 @@ import com.medical.pneumonia.dto.response.DashboardStatResponse;
 import com.medical.pneumonia.dto.response.DiagnosisStatResponse;
 import com.medical.pneumonia.dto.response.VisitResponse;
 import com.medical.pneumonia.dto.response.VisitTrendResponse;
+import com.medical.pneumonia.entity.Visit;
 import com.medical.pneumonia.enums.DashboardRange;
 import com.medical.pneumonia.enums.DiagnosisResult;
 import com.medical.pneumonia.exception.AppException;
@@ -20,12 +21,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -43,16 +48,28 @@ public class DashboardService {
   static final DateTimeFormatter DATE_FORMATTER =
       DateTimeFormatter.ofPattern(DashboardConstants.DATE_FORMAT).withZone(ZoneId.systemDefault());
 
+  @Cacheable(value = "dashboard_stats", key = "'overview'")
   public DashboardStatResponse getOverviewStatistics() {
-    return DashboardStatResponse.builder()
-        .totalPatients(patientRepository.count())
-        .totalVisits(visitRepository.count())
-        .totalUsers(userRepository.count())
-        .todayVisits(getTodayVisitsCount())
-        .percentageIncrease(12.5)
-        .build();
+    var totalPatientsFuture = CompletableFuture.supplyAsync(patientRepository::count);
+    var totalVisitsFuture = CompletableFuture.supplyAsync(visitRepository::count);
+    var totalUsersFuture = CompletableFuture.supplyAsync(userRepository::count);
+    var todayVisitsFuture = CompletableFuture.supplyAsync(this::getTodayVisitsCount);
+
+    try {
+      return DashboardStatResponse.builder()
+          .totalPatients(totalPatientsFuture.get())
+          .totalVisits(totalVisitsFuture.get())
+          .totalUsers(totalUsersFuture.get())
+          .todayVisits(todayVisitsFuture.get())
+          .percentageIncrease(12.5) // This could also be calculated dynamically
+          .build();
+    } catch (Exception e) {
+      log.error("Error gathering overview statistics", e);
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
   }
 
+  @Cacheable(value = "dashboard_stats", key = "#rangeKey")
   public List<VisitTrendResponse> getVisitTrends(String rangeKey) {
     try {
       DashboardRange range = DashboardRange.fromKey(rangeKey);
@@ -74,6 +91,7 @@ public class DashboardService {
     }
   }
 
+  @Cacheable(value = "dashboard_stats", key = "'diagnosis'")
   public List<DiagnosisStatResponse> getDiagnosisStats() {
     try {
       return diagnosisRepository.countDiagnosesByResult().stream()
@@ -89,12 +107,10 @@ public class DashboardService {
 
   public List<VisitResponse> getRecentVisits(int limit) {
     try {
-      org.springframework.data.domain.Pageable pageable =
-          org.springframework.data.domain.PageRequest.of(0, limit);
+      Pageable pageable = PageRequest.of(0, limit);
       var page = visitRepository.findByOrderByVisitDateDesc(pageable);
 
-      List<String> visitIds =
-          page.getContent().stream().map(com.medical.pneumonia.entity.Visit::getId).toList();
+      List<String> visitIds = page.getContent().stream().map(Visit::getId).toList();
       return visitService.populateVisitResponses(page.getContent(), visitIds);
     } catch (Exception e) {
       log.error("Error fetching recent visits", e);

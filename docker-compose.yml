@@ -27,6 +27,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/pneumonia
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+  redis:
+    image: redis:alpine
+    container_name: pneumonia-redis
+    restart: always
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres_data:
+  redis_data:

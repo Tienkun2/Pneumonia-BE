@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -25,7 +26,12 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "diagnoses")
+@Table(
+    name = "diagnoses",
+    indexes = {
+      @Index(name = "idx_diagnosis_visit_id", columnList = "visit_id"),
+      @Index(name = "idx_diagnosis_result", columnList = "result")
+    })
 public class Diagnosis {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

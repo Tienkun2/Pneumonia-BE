@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -23,7 +24,13 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Entity
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "users")
+@Table(
+    name = "users",
+    indexes = {
+      @Index(name = "idx_user_username", columnList = "username"),
+      @Index(name = "idx_user_email", columnList = "email"),
+      @Index(name = "idx_user_status", columnList = "status")
+    })
 public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
