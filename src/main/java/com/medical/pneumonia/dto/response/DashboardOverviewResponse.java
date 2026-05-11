@@ -1,7 +1,7 @@
 package com.medical.pneumonia.dto.response;
 
-import com.medical.pneumonia.enums.DiagnosisResult;
-import java.time.Instant;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,12 +14,10 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class DiagnosisResponse {
-  String id;
-  DiagnosisResult result;
-  Double confidenceScore;
-  String modelVersion;
-  Boolean doctorConfirm;
-  String note;
-  Instant createdAt;
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DashboardOverviewResponse {
+  DashboardStatResponse summary;
+  List<VisitTrendResponse> trends;
+  List<DiagnosisStatResponse> diagnosisStats;
+  List<VisitResponse> recentVisits;
 }

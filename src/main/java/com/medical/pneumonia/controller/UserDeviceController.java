@@ -28,7 +28,7 @@ public class UserDeviceController {
 
   @GetMapping("/my-devices")
   public ApiResponse<List<UserDeviceResponse>> getMyDevices(@AuthenticationPrincipal Jwt jwt) {
-    String currentUserId = userService.getMyInfo().getId();
+    String currentUserId = userService.getMyInfo(jwt.getSubject()).getId();
     String currentDeviceId = jwt.getClaimAsString("did");
     return ApiResponse.<List<UserDeviceResponse>>builder()
         .message("Get your login devices successfully")

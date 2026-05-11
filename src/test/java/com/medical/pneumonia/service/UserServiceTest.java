@@ -31,8 +31,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -284,18 +282,10 @@ class UserServiceTest {
 
   @Test
   void getMyInfo_success() {
-
-    Authentication authentication = mock(Authentication.class);
-
-    when(authentication.getName()).thenReturn("testuser");
-
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-
     when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-
     when(userMapper.toUserResponse(user)).thenReturn(response);
 
-    UserResponse result = userService.getMyInfo();
+    UserResponse result = userService.getMyInfo("testuser");
 
     assertNotNull(result);
     assertEquals("testuser", result.getUsername());
@@ -303,16 +293,9 @@ class UserServiceTest {
 
   @Test
   void getMyInfo_userNotFound_throwException() {
-
-    Authentication authentication = mock(Authentication.class);
-
-    when(authentication.getName()).thenReturn("testuser");
-
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-
     when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
 
-    assertThrows(AppException.class, () -> userService.getMyInfo());
+    assertThrows(AppException.class, () -> userService.getMyInfo("testuser"));
   }
 
   // ================= VERIFY ACTIVATION TOKEN =================

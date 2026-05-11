@@ -24,6 +24,18 @@ public class RedisConfig implements CachingConfigurer {
 
   @Bean
   public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    com.fasterxml.jackson.databind.ObjectMapper mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+    mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    mapper.activateDefaultTyping(
+        com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator.builder()
+            .allowIfBaseType(Object.class)
+            .build(),
+        com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.NON_FINAL,
+        com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+
     RedisCacheConfiguration config =
         RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))
@@ -33,7 +45,7 @@ public class RedisConfig implements CachingConfigurer {
                     new StringRedisSerializer()))
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(
-                    new GenericJackson2JsonRedisSerializer()));
+                    new GenericJackson2JsonRedisSerializer(mapper)));
 
     return RedisCacheManager.builder(connectionFactory).cacheDefaults(config).build();
   }

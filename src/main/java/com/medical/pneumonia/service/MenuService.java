@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -30,9 +31,8 @@ public class MenuService {
   UserRepository userRepository;
   PermissionRepository permissionRepository;
 
-  public List<MenuResponse> getMyMenus() {
-    var context = SecurityContextHolder.getContext();
-    String username = context.getAuthentication().getName();
+  @Cacheable(value = "menus", key = "#username")
+  public List<MenuResponse> getMyMenus(String username) {
     User user =
         userRepository
             .findByUsername(username)

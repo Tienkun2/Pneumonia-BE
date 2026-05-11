@@ -31,7 +31,7 @@ public class MedicalImage {
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @ManyToOne
+  @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
   @JoinColumn(name = "visit_id", nullable = false)
   Visit visit;
 

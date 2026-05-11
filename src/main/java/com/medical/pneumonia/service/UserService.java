@@ -193,11 +193,8 @@ public class UserService {
     return toUserResponseWithDeviceCount(user);
   }
 
-  @Cacheable(value = "users", key = "#username", condition = "#username != null")
-  public UserResponse getMyInfo() {
-
-    var context = SecurityContextHolder.getContext();
-    String username = context.getAuthentication().getName();
+  @Cacheable(value = "users", key = "#username")
+  public UserResponse getMyInfo(String username) {
     User user =
         userRepository
             .findByUsername(username)

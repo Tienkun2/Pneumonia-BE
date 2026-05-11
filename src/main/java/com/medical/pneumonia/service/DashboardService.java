@@ -1,6 +1,7 @@
 package com.medical.pneumonia.service;
 
 import com.medical.pneumonia.constant.DashboardConstants;
+import com.medical.pneumonia.dto.response.DashboardOverviewResponse;
 import com.medical.pneumonia.dto.response.DashboardStatResponse;
 import com.medical.pneumonia.dto.response.DiagnosisStatResponse;
 import com.medical.pneumonia.dto.response.VisitResponse;
@@ -61,10 +62,83 @@ public class DashboardService {
           .totalVisits(totalVisitsFuture.get())
           .totalUsers(totalUsersFuture.get())
           .todayVisits(todayVisitsFuture.get())
-          .percentageIncrease(12.5) // This could also be calculated dynamically
+          .percentageIncrease(12.5)
           .build();
     } catch (Exception e) {
       log.error("Error gathering overview statistics", e);
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
+  }
+
+  @Cacheable(value = "dashboard_overview", key = "'all'")
+  public DashboardOverviewResponse getOverview() {
+    try {
+      // Gọi trực tiếp các query song song — không qua Spring proxy
+      // nên @Cacheable trên sub-methods không kích hoạt ở đây,
+      // nhưng getOverview() tự nó được cache bởi dòng trên.
+      var summaryFuture =
+          CompletableFuture.supplyAsync(patientRepository::count)
+              .thenCombine(
+                  CompletableFuture.supplyAsync(visitRepository::count),
+                  (patients, visits) ->
+                      CompletableFuture.supplyAsync(userRepository::count)
+                          .thenCombine(
+                              CompletableFuture.supplyAsync(this::getTodayVisitsCount),
+                              (users, today) ->
+                                  DashboardStatResponse.builder()
+                                      .totalPatients(patients)
+                                      .totalVisits(visits)
+                                      .totalUsers(users)
+                                      .todayVisits(today)
+                                      .percentageIncrease(12.5)
+                                      .build())
+                          .join());
+
+      var trendsFuture =
+          CompletableFuture.supplyAsync(
+              () -> {
+                DashboardRange range = DashboardRange.fromKey("7d");
+                LocalDate startDate = LocalDate.now().minusDays(range.getDays() - 1);
+                Instant startInstant = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+                Map<String, Long> visitsByDate =
+                    visitRepository.countVisitsByDateNative(startInstant).stream()
+                        .collect(
+                            Collectors.toMap(
+                                row -> row[0].toString(), row -> ((Number) row[1]).longValue()));
+                return Stream.iterate(startDate, d -> d.plusDays(1))
+                    .limit(range.getDays())
+                    .map(date -> buildTrendResponse(date, visitsByDate))
+                    .toList();
+              });
+
+      var diagStatsFuture =
+          CompletableFuture.supplyAsync(
+              () ->
+                  diagnosisRepository.countDiagnosesByResult().stream()
+                      .map(this::mapToDiagnosisStat)
+                      .filter(Optional::isPresent)
+                      .map(Optional::get)
+                      .toList());
+
+      var recentVisitsFuture =
+          CompletableFuture.supplyAsync(
+              () -> {
+                Pageable pageable = PageRequest.of(0, 5);
+                var page = visitRepository.findByOrderByVisitDateDesc(pageable);
+                List<String> visitIds = page.getContent().stream().map(Visit::getId).toList();
+                return visitService.populateVisitResponses(page.getContent(), visitIds);
+              });
+
+      CompletableFuture.allOf(trendsFuture, diagStatsFuture, recentVisitsFuture).join();
+
+      return DashboardOverviewResponse.builder()
+          .summary(summaryFuture.join())
+          .trends(trendsFuture.get())
+          .diagnosisStats(diagStatsFuture.get())
+          .recentVisits(recentVisitsFuture.get())
+          .build();
+    } catch (Exception e) {
+      log.error("Error gathering dashboard overview", e);
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
   }
@@ -105,6 +179,7 @@ public class DashboardService {
     }
   }
 
+  @Cacheable(value = "dashboard_stats", key = "'recent_visits_' + #limit")
   public List<VisitResponse> getRecentVisits(int limit) {
     try {
       Pageable pageable = PageRequest.of(0, limit);

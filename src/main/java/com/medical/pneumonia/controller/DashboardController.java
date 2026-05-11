@@ -1,6 +1,7 @@
 package com.medical.pneumonia.controller;
 
 import com.medical.pneumonia.dto.request.ApiResponse;
+import com.medical.pneumonia.dto.response.DashboardOverviewResponse;
 import com.medical.pneumonia.dto.response.DashboardStatResponse;
 import com.medical.pneumonia.dto.response.DiagnosisStatResponse;
 import com.medical.pneumonia.dto.response.VisitResponse;
@@ -22,6 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
 
   DashboardService dashboardService;
+
+  @GetMapping("/overview")
+  ApiResponse<DashboardOverviewResponse> getOverview() {
+    return ApiResponse.<DashboardOverviewResponse>builder()
+        .message("Get dashboard overview successfully")
+        .result(dashboardService.getOverview())
+        .build();
+  }
 
   @GetMapping("/summary")
   ApiResponse<DashboardStatResponse> getOverviewStatistics() {
