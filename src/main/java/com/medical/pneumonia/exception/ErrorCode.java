@@ -40,6 +40,9 @@ public enum ErrorCode {
   IMAGE_INVALID_TYPE(7001, "Ảnh phải thuộc định dạng JPEG, PNG hoặc WEBP", HttpStatus.BAD_REQUEST),
   UPLOAD_FAILED(
       7002, "Quá trình tải ảnh lên máy chủ Cloudinary gặp lỗi", HttpStatus.INTERNAL_SERVER_ERROR),
+
+  // Article
+  ARTICLE_NOT_FOUND(8001, "Không tìm thấy bài viết", HttpStatus.NOT_FOUND),
   ;
 
   ErrorCode(int code, String message, HttpStatus httpStatusCode) {
