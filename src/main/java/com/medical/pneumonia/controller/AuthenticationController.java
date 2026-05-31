@@ -14,6 +14,7 @@ import java.text.ParseException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
   AuthenticationService authenticationService;
+
+  @GetMapping("/ping")
+  public ApiResponse<String> ping() {
+    return ApiResponse.<String>builder().message("Server is active").result("pong").build();
+  }
 
   @PostMapping("/login")
   ApiResponse<AuthenticationResponse> authenticate(
