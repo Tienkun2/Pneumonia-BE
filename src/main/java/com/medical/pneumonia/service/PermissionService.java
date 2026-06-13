@@ -18,11 +18,14 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Transactional(readOnly = true)
 public class PermissionService {
   PermissionRepository permissionRepository;
   PermissionMapper permissionMapper;
@@ -34,6 +37,8 @@ public class PermissionService {
         .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND));
   }
 
+  @Transactional
+  @CacheEvict(value = "menus", allEntries = true)
   public PermissionResponse createPermission(PermissionCreationRequest request) {
     Permission permission = permissionMapper.toPermission(request);
     permission = permissionRepository.save(permission);
@@ -62,10 +67,14 @@ public class PermissionService {
     return permissionMapper.toPermissionResponse(getPermissionEntity(name));
   }
 
+  @Transactional
+  @CacheEvict(value = "menus", allEntries = true)
   public void deletePermission(String name) {
     permissionRepository.delete(getPermissionEntity(name));
   }
 
+  @Transactional
+  @CacheEvict(value = "menus", allEntries = true)
   public PermissionResponse updatePermission(String name, PermissionUpdateRequest request) {
     var permission = getPermissionEntity(name);
     permissionMapper.updatePermission(permission, request);
@@ -76,7 +85,7 @@ public class PermissionService {
   public List<PermissionTreeResponse> getPermissionTree(String roleName) {
     Set<String> rolePermissions =
         roleRepository
-            .findById(roleName)
+            .findByNameWithPermissions(roleName)
             .map(
                 role ->
                     role.getPermissions().stream()
@@ -87,11 +96,11 @@ public class PermissionService {
     List<Permission> all = permissionRepository.findAll();
     Map<String, List<Permission>> childrenByParent =
         all.stream()
-            .filter(p -> p.getParentName() != null)
+            .filter(p -> p.getParentName() != null && !p.getParentName().isEmpty())
             .collect(Collectors.groupingBy(Permission::getParentName));
 
     return all.stream()
-        .filter(p -> p.getParentName() == null)
+        .filter(p -> p.getParentName() == null || p.getParentName().isEmpty())
         .map(p -> buildTreeRecursive(p, childrenByParent, rolePermissions))
         .collect(Collectors.toList());
   }

@@ -38,11 +38,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Transactional(readOnly = true)
 public class UserService {
 
   UserRepository userRepository;
@@ -55,6 +57,7 @@ public class UserService {
   UserDeviceRepository userDeviceRepository;
   UserSessionRepository userSessionRepository;
 
+  @Transactional
   public UserResponse uploadAvatar(MultipartFile file) {
     var context = SecurityContextHolder.getContext();
     String username = context.getAuthentication().getName();
@@ -75,6 +78,7 @@ public class UserService {
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+  @Transactional
   public UserResponse createUser(UserCreationRequest request) {
 
     if (userRepository.existsByUsername(request.getUsername())) {
@@ -157,14 +161,20 @@ public class UserService {
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  @CacheEvict(value = "users", key = "#id")
+  @Transactional
+  @CacheEvict(
+      value = {"users", "menus"},
+      allEntries = true)
   public void deleteUser(String id) {
     User user = getUserEntity(id);
     userRepository.delete(user);
   }
 
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  @CacheEvict(value = "users", key = "#id")
+  @Transactional
+  @CacheEvict(
+      value = {"users", "menus"},
+      allEntries = true)
   public UserResponse updateUser(String id, UserUpdateRequest request) {
 
     User user = getUserEntity(id);
@@ -210,6 +220,7 @@ public class UserService {
     return response;
   }
 
+  @Transactional
   public void setPassword(String token, String password) {
     User user =
         userRepository
@@ -228,6 +239,7 @@ public class UserService {
     userRepository.save(user);
   }
 
+  @Transactional
   public void resendActivation(String email) {
     User user =
         userRepository
@@ -246,6 +258,7 @@ public class UserService {
     emailService.sendActivationEmail(email, user.getUsername(), token);
   }
 
+  @Transactional
   public void changePassword(ChangePasswordRequest request) {
     var context = SecurityContextHolder.getContext();
     String username = context.getAuthentication().getName();

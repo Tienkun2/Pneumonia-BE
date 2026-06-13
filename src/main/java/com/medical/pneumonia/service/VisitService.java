@@ -225,18 +225,30 @@ public class VisitService {
 
     return transactionTemplate.execute(
         status -> {
-          Patient patient =
-              patientRepository
-                  .findById(request.getPatientId())
-                  .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+          Visit visit;
+          if (request.getVisitId() != null && !request.getVisitId().trim().isEmpty()) {
+            visit = visitRepository.findById(request.getVisitId())
+                .orElseThrow(() -> new AppException(ErrorCode.VISIT_NOT_FOUND));
+            if (request.getSymptoms() != null) {
+              visit.setSymptoms(request.getSymptoms());
+            }
+            if (request.getNote() != null) {
+              visit.setNote(request.getNote());
+            }
+          } else {
+            Patient patient =
+                patientRepository
+                    .findById(request.getPatientId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-          Visit visit =
-              Visit.builder()
-                  .patient(patient)
-                  .symptoms(request.getSymptoms())
-                  .note(request.getNote())
-                  .visitDate(Instant.now())
-                  .build();
+            visit =
+                Visit.builder()
+                    .patient(patient)
+                    .symptoms(request.getSymptoms())
+                    .note(request.getNote())
+                    .visitDate(Instant.now())
+                    .build();
+          }
 
           var context = SecurityContextHolder.getContext();
           if (context != null && context.getAuthentication() != null) {

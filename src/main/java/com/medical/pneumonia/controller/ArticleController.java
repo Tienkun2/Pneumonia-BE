@@ -55,7 +55,8 @@ public class ArticleController {
   }
 
   @PostMapping
-  public ApiResponse<ArticleResponse> createArticle(@RequestBody @Valid ArticleCreationRequest request) {
+  public ApiResponse<ArticleResponse> createArticle(
+      @RequestBody @Valid ArticleCreationRequest request) {
     return ApiResponse.<ArticleResponse>builder()
         .message("Create article successfully")
         .result(articleService.createArticle(request))
@@ -74,9 +75,7 @@ public class ArticleController {
   @DeleteMapping("/{id}")
   public ApiResponse<Void> deleteArticle(@PathVariable String id) {
     articleService.deleteArticle(id);
-    return ApiResponse.<Void>builder()
-        .message("Delete article successfully")
-        .build();
+    return ApiResponse.<Void>builder().message("Delete article successfully").build();
   }
 
   @PostMapping("/upload-image")
